@@ -14,9 +14,11 @@ namespace DTAClient.Domain.Multiplayer
     public class MapLoader
     {
         public const string MAP_FILE_EXTENSION = ".map";
-        private const string CUSTOM_MAPS_DIRECTORY = "Maps/Custom";
-        private static readonly string CUSTOM_MAPS_CACHE = SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "custom_map_cache");
-        private const string MultiMapsSection = "MultiMaps";
+        private static string CUSTOM_MAPS_DIRECTORY(string mapFileName)
+        {
+            return SafePath.CombineFilePath("Maps", "Custom", mapFileName);
+        }
+        private static readonly string CUSTOM_MAPS_CACHE = SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "Maps", "Custom", "{Insert .map file name here}");        private const string MultiMapsSection = "MultiMaps";
         private const string GameModesSection = "GameModes";
         private const string GameModeAliasesSection = "GameModeAliases";
         private const int CurrentCustomMapCacheVersion = 1;
@@ -154,7 +156,7 @@ namespace DTAClient.Domain.Multiplayer
 
         private void LoadCustomMaps()
         {
-            DirectoryInfo customMapsDirectory = SafePath.GetDirectory(ProgramConstants.GamePath, CUSTOM_MAPS_DIRECTORY);
+            DirectoryInfo customMapsDirectory = SafePath.GetDirectory(ProgramConstants.GamePath, CUSTOM_MAPS_DIRECTORY("someMapFileName"));
 
             if (!customMapsDirectory.Exists)
             {
