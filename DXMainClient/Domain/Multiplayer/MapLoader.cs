@@ -18,6 +18,12 @@ namespace DTAClient.Domain.Multiplayer
         {
             return SafePath.CombineFilePath("Maps", "Custom", mapFileName);
         }
+        
+        private static string[] GetAllMapFiles()
+        {
+            string customMapsPath = SafePath.CombineFilePath("Maps", "Custom");
+            return Directory.GetFiles(customMapsPath, "*.map", SearchOption.AllDirectories);
+        }        
         private static readonly string CUSTOM_MAPS_CACHE = SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "Maps", "Custom", "{Insert .map file name here}");        private const string MultiMapsSection = "MultiMaps";
         private const string GameModesSection = "GameModes";
         private const string GameModeAliasesSection = "GameModeAliases";
