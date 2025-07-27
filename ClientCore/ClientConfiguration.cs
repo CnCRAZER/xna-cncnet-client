@@ -369,9 +369,9 @@ namespace ClientCore
         public bool InactiveHostKickEnabled => InactiveHostWarningMessageSeconds > 0 && InactiveHostKickSeconds > 0;
 
         public string SkillLevelOptions => clientDefinitionsIni.GetStringValue(SETTINGS, "SkillLevelOptions", "Any,Beginner,Intermediate,Pro");
-
+        
         public int DefaultSkillLevelIndex => clientDefinitionsIni.GetIntValue(SETTINGS, "DefaultSkillLevelIndex", 0);
-
+        
         public string GetGameExecutableName()
         {
             string[] exeNames = clientDefinitionsIni.GetStringListValue(SETTINGS, "GameExecutableNames", "Game.exe");
@@ -418,7 +418,7 @@ namespace ClientCore
         /// The main map file extension that is read by the client.
         /// </summary>
         public string MapFileExtension => clientDefinitionsIni.GetStringValue(SETTINGS, "MapFileExtension", "map");
-
+        
         /// <summary>
         /// This tells the client which supplemental map files are ok to copy over during "spawnmap.ini" file creation.
         /// IE, if "BIN" is listed, then the client will look for and copy the file "map_a.bin"
@@ -467,8 +467,6 @@ namespace ClientCore
 
         public bool UserDefault_WriteInstallationPathToRegistry => clientDefinitionsIni.GetBooleanValue(USER_DEFAULTS, "WriteInstallationPathToRegistry", true);
 
-        public float UserDefault_ClientVolume => clientDefinitionsIni.GetSingleValue(USER_DEFAULTS, "ClientVolume", 0.2f);
-
         #endregion
 
         #region Game networking defaults
@@ -513,27 +511,27 @@ namespace ClientCore
             {
                 Version osVersion = Environment.OSVersion.Version;
 
-            if (osVersion.Major <= 4)
-                return OSVersion.UNKNOWN;
+                if (osVersion.Major <= 4)
+                    return OSVersion.UNKNOWN;
 
-            if (osVersion.Major == 5)
-                return OSVersion.WINXP;
+                if (osVersion.Major == 5)
+                    return OSVersion.WINXP;
 
-            if (osVersion.Major == 6 && osVersion.Minor == 0)
-                return OSVersion.WINVISTA;
+                if (osVersion.Major == 6 && osVersion.Minor == 0)
+                    return OSVersion.WINVISTA;
 
-            if (osVersion.Major == 6 && osVersion.Minor <= 1)
-                return OSVersion.WIN7;
+                if (osVersion.Major == 6 && osVersion.Minor <= 1)
+                    return OSVersion.WIN7;
 
-            return OSVersion.WIN810;
-        }
+                return OSVersion.WIN810;
+            }
 
-        if (ProgramConstants.ISMONO)
-            return OSVersion.UNIX;
+            if (ProgramConstants.ISMONO)
+                return OSVersion.UNIX;
 
-        // http://mono.wikia.com/wiki/Detecting_the_execution_platform
-        int p = (int)Environment.OSVersion.Platform;
-        if (p == 4 || p == 6 || p == 128)
+            // http://mono.wikia.com/wiki/Detecting_the_execution_platform
+            int p = (int)Environment.OSVersion.Platform;
+            if (p == 4 || p == 6 || p == 128)
                 return OSVersion.UNIX;
 
             return OSVersion.UNKNOWN;
