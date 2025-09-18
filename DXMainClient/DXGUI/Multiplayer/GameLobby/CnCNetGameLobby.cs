@@ -1378,6 +1378,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             iniFile.SetStringValue("Tunnel", "Ip", tunnelHandler.CurrentTunnel.Address);
             iniFile.SetIntValue("Tunnel", "Port", tunnelHandler.CurrentTunnel.Port);
+            iniFile.SetIntValue("Tunnel", "Version", tunnelHandler.CurrentTunnel.Version);
 
             iniFile.SetIntValue("Settings", "GameID", UniqueGameID);
             iniFile.SetBooleanValue("Settings", "Host", IsHost);

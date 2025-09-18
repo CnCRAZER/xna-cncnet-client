@@ -29,9 +29,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             Height = LineHeight * 12 + headerHeight + 3;
             PanelBackgroundDrawMode = PanelBackgroundImageDrawMode.STRETCHED;
             BackgroundTexture = AssetLoader.CreateTexture(new Color(0, 0, 0, 128), 1, 1);
-            AddColumn("Name".L10N("Client:Main:NameHeader"), 230);
+            AddColumn("Name".L10N("Client:Main:NameHeader"), 200);
             AddColumn("Official".L10N("Client:Main:OfficialHeader"), 70);
-            AddColumn("Ping".L10N("Client:Main:PingHeader"), 76);
+            AddColumn("Ver", 36);
+            AddColumn("Ping".L10N("Client:Main:PingHeader"), 70);
             AddColumn("Players".L10N("Client:Main:PlayersHeader"), 90);
             AllowRightClickUnselect = false;
             AllowKeyboardInput = true;
@@ -83,6 +84,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
                 info.Add(tunnel.Name);
                 info.Add(Conversions.BooleanToString(tunnel.Official, BooleanStringStyle.YESNO));
+                info.Add("v" + tunnel.Version.ToString());
                 if (tunnel.PingInMs < 0)
                     info.Add("Unknown".L10N("Client:Main:UnknownPing"));
                 else
@@ -130,7 +132,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void TunnelHandler_TunnelPinged(int tunnelIndex)
         {
-            XNAListBoxItem lbItem = GetItem(2, tunnelIndex);
+            XNAListBoxItem lbItem = GetItem(3, tunnelIndex);
             CnCNetTunnel tunnel = tunnelHandler.Tunnels[tunnelIndex];
 
             if (tunnel.PingInMs == -1)

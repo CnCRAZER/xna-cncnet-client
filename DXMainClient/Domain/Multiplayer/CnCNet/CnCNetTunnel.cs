@@ -86,11 +86,31 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         public int PingInMs { get; set; } = -1;
 
         /// <summary>
-        /// Gets a list of player ports to use from a specific tunnel server.
+        /// Gets a list of player identifiers/ports to use from a specific tunnel server.
+        /// For V2 tunnels, this performs an HTTP request to allocate client IDs (ports).
+        /// For V3 tunnels, IDs are client-generated 32-bit values; allocation happens on first UDP packet.
         /// </summary>
-        /// <returns>A list of player ports to use.</returns>
+        /// <returns>A list of player ports/IDs to use.</returns>
         public List<int> GetPlayerPortInfo(int playerCount)
         {
+            // V3: generate local unique 32-bit IDs (non-zero, distinct). Server assigns on first packet.
+            if (Version >= 3)
+            {
+                var ids = new List<int>(playerCount);
+                var rng = new Random(unchecked((int)DateTime.UtcNow.Ticks));
+                var used = new System.Collections.Generic.HashSet<int>();
+                for (int i = 0; i < playerCount; i++)
+                {
+                    int id;
+                    // ensure positive, non-zero and unique (use 1..Int32.MaxValue-1)
+                    do { id = rng.Next(1, int.MaxValue); } while (!used.Add(id));
+                    ids.Add(id);
+                }
+                Logger.Log($"Generated {ids.Count} V3 tunnel client IDs locally.");
+                return ids;
+            }
+
+            // Default (V2): request IDs from HTTP endpoint
             try
             {
                 Logger.Log($"Contacting tunnel at {Address}:{Port}");

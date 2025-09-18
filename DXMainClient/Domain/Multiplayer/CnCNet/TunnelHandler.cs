@@ -29,7 +29,8 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         /// </summary>
         private const uint CYCLES_PER_TUNNEL_LIST_REFRESH = 6;
 
-        private const int SUPPORTED_TUNNEL_VERSION = 2;
+    // Supported tunnel protocol versions. V2 uses HTTP allocation, V3 allocates on first UDP packet.
+    private static readonly System.Collections.Generic.HashSet<int> SUPPORTED_TUNNEL_VERSIONS = new System.Collections.Generic.HashSet<int> { 2, 3 };
 
         public TunnelHandler(WindowManager wm, CnCNetManager connectionManager) : base(wm.Game)
         {
@@ -236,7 +237,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                     if (tunnel.RequiresPassword)
                         continue;
 
-                    if (tunnel.Version != SUPPORTED_TUNNEL_VERSION)
+                    if (!SUPPORTED_TUNNEL_VERSIONS.Contains(tunnel.Version))
                         continue;
 
                     returnValue.Add(tunnel);

@@ -655,6 +655,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             spawnIni.SetStringValue("Tunnel", "Ip", tunnelHandler.CurrentTunnel.Address);
             spawnIni.SetIntValue("Tunnel", "Port", tunnelHandler.CurrentTunnel.Port);
+            spawnIni.SetIntValue("Tunnel", "Version", tunnelHandler.CurrentTunnel.Version);
 
             base.WriteSpawnIniAdditions(spawnIni);
         }
