@@ -112,24 +112,24 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         public event EventHandler GameLeft;
 
-    private readonly TunnelHandler tunnelHandler;
+        private readonly TunnelHandler tunnelHandler;
         private TunnelSelectionWindow tunnelSelectionWindow;
         private XNAClientButton btnChangeTunnel;
 
         private Channel channel;
-    private readonly CnCNetManager connectionManager;
-    private readonly string localGame;
+        private readonly CnCNetManager connectionManager;
+        private readonly string localGame;
 
         private readonly GameHostInactiveChecker gameHostInactiveChecker;
 
-    private readonly GameCollection gameCollection;
-    private readonly CnCNetUserData cncnetUserData;
+        private readonly GameCollection gameCollection;
+        private readonly CnCNetUserData cncnetUserData;
         private readonly PrivateMessagingWindow pmWindow;
         private GlobalContextMenu globalContextMenu;
 
         private string hostName;
 
-    private readonly CommandHandlerBase[] ctcpCommandHandlers;
+        private readonly CommandHandlerBase[] ctcpCommandHandlers;
 
         private IRCColor chatColor;
 
@@ -145,12 +145,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private string gameFilesHash;
 
-    private readonly List<string> hostUploadedMaps = new List<string>();
-    private readonly List<string> chatCommandDownloadedMaps = new List<string>();
+        private readonly List<string> hostUploadedMaps = new List<string>();
+        private readonly List<string> chatCommandDownloadedMaps = new List<string>();
 
         private MapSharingConfirmationPanel mapSharingConfirmationPanel;
 
-    private readonly Random random;
+        private readonly Random random;
 
         /// <summary>
         /// The SHA1 of the latest selected map.

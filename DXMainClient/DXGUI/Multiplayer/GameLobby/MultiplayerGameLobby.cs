@@ -62,14 +62,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected XNAClientButton btnLockGame;
         protected XNAClientCheckBox chkAutoReady;
 
-    private readonly Random random;
+        private readonly Random random;
 
-    // Launch countdown support
-    private XNATimerControl launchCountdownTimer;
-    private int launchCountdownRemaining;
-    private bool launchCountdownActive;
-    private Action<int> launchCountdownTick;
-    private Action launchCountdownFinished;
+        // Launch countdown support
+        private XNATimerControl launchCountdownTimer;
+        private int launchCountdownRemaining;
+        private bool launchCountdownActive;
+        private Action<int> launchCountdownTick;
+        private Action launchCountdownFinished;
 
         protected bool IsHost = false;
 

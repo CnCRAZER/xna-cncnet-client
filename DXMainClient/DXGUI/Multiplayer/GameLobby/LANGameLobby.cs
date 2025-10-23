@@ -38,8 +38,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private const string PLAYER_QUIT_COMMAND = "QUIT";
         private const string GAME_OPTIONS_COMMAND = "OPTS";
         private const string PLAYER_READY_REQUEST = "READY";
-    private const string LAUNCH_GAME_COMMAND = "LAUNCH";
-    private const string COUNTDOWN_COMMAND = "COUNTDOWN"; // COUNTDOWN <seconds>
+        private const string LAUNCH_GAME_COMMAND = "LAUNCH";
+        private const string COUNTDOWN_COMMAND = "COUNTDOWN"; // COUNTDOWN <seconds>
         private const string FILE_HASH_COMMAND = "FHASH";
         private const string DICE_ROLL_COMMAND = "DR";
         public const string PING = "PING";
@@ -110,12 +110,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private TcpClient client;
 
         private IPEndPoint hostEndPoint;
-    private readonly LANColor[] chatColors;
+        private readonly LANColor[] chatColors;
         private int chatColorIndex;
-    private readonly Encoding encoding;
+        private readonly Encoding encoding;
 
-    private readonly CommandHandlerBase[] hostCommandHandlers;
-    private readonly LANClientCommandHandler[] playerCommandHandlers;
+        private readonly CommandHandlerBase[] hostCommandHandlers;
+        private readonly LANClientCommandHandler[] playerCommandHandlers;
 
         private TimeSpan timeSinceGameBroadcast = TimeSpan.Zero;
 
@@ -123,11 +123,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private string overMessage = string.Empty;
 
-    private readonly string localGame;
+        private readonly string localGame;
 
         private string localFileHash;
 
-    private readonly Random random;
+        private readonly Random random;
 
         public override void Initialize()
         {
