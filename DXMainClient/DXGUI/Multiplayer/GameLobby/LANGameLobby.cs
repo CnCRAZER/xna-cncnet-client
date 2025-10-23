@@ -38,7 +38,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private const string PLAYER_QUIT_COMMAND = "QUIT";
         private const string GAME_OPTIONS_COMMAND = "OPTS";
         private const string PLAYER_READY_REQUEST = "READY";
-        private const string LAUNCH_GAME_COMMAND = "LAUNCH";
+    private const string LAUNCH_GAME_COMMAND = "LAUNCH";
+    private const string COUNTDOWN_COMMAND = "COUNTDOWN"; // COUNTDOWN <seconds>
         private const string FILE_HASH_COMMAND = "FHASH";
         private const string DICE_ROLL_COMMAND = "DR";
         public const string PING = "PING";
@@ -69,6 +70,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 new ClientStringCommandHandler(PLAYER_OPTIONS_BROADCAST_COMMAND, HandlePlayerOptionsBroadcast),
                 new ClientStringCommandHandler(PlayerExtraOptions.LAN_MESSAGE_KEY, HandlePlayerExtraOptionsBroadcast),
                 new ClientStringCommandHandler(LAUNCH_GAME_COMMAND, HandleGameLaunchCommand),
+                new ClientStringCommandHandler(COUNTDOWN_COMMAND, HandleCountdownCommand),
                 new ClientStringCommandHandler(GAME_OPTIONS_COMMAND, HandleGameOptionsMessage),
                 new ClientStringCommandHandler(DICE_ROLL_COMMAND, Client_HandleDiceRoll),
                 new ClientNoParamCommandHandler(PING, HandlePing),
@@ -108,12 +110,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private TcpClient client;
 
         private IPEndPoint hostEndPoint;
-        private LANColor[] chatColors;
+    private readonly LANColor[] chatColors;
         private int chatColorIndex;
-        private Encoding encoding;
+    private readonly Encoding encoding;
 
-        private CommandHandlerBase[] hostCommandHandlers;
-        private LANClientCommandHandler[] playerCommandHandlers;
+    private readonly CommandHandlerBase[] hostCommandHandlers;
+    private readonly LANClientCommandHandler[] playerCommandHandlers;
 
         private TimeSpan timeSinceGameBroadcast = TimeSpan.Zero;
 
@@ -121,11 +123,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private string overMessage = string.Empty;
 
-        private string localGame;
+    private readonly string localGame;
 
         private string localFileHash;
 
-        private Random random;
+    private readonly Random random;
 
         public override void Initialize()
         {
@@ -522,7 +524,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             BroadcastMessage(playerExtraOptions.ToLanMessage(), true);
         }
 
-        protected override void HostLaunchGame() => BroadcastMessage(LAUNCH_GAME_COMMAND + " " + UniqueGameID);
+        protected override void HostLaunchGame()
+        {
+            // Start a 5->1 countdown; broadcast ticks and launch at finish
+            StartLaunchCountdown(5,
+                tick => BroadcastMessage($"{COUNTDOWN_COMMAND} {tick}"),
+                () => BroadcastMessage(LAUNCH_GAME_COMMAND + " " + UniqueGameID));
+        }
 
         protected override string GetIPAddressForPlayer(PlayerInfo player)
         {
@@ -1088,6 +1096,16 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             CopyPlayerDataToUI();
             StartGame();
+        }
+
+        private void HandleCountdownCommand(string secondsText)
+        {
+            int seconds = Conversions.IntFromString(secondsText, -1);
+            if (seconds < 1)
+                return;
+
+            // Show a notice to the lobby for the current tick
+            AddNotice(string.Format("Game starting in {0}...", seconds));
         }
 
         private void HandlePing()

@@ -62,7 +62,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected XNAClientButton btnLockGame;
         protected XNAClientCheckBox chkAutoReady;
 
-        private Random random;
+    private readonly Random random;
+
+    // Launch countdown support
+    private XNATimerControl launchCountdownTimer;
+    private int launchCountdownRemaining;
+    private bool launchCountdownActive;
+    private Action<int> launchCountdownTick;
+    private Action launchCountdownFinished;
 
         protected bool IsHost = false;
 
@@ -198,6 +205,16 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
 
             ParseHostPlayerControls();
+
+            // Initialize countdown timer control (disabled by default)
+            launchCountdownTimer = new XNATimerControl(WindowManager)
+            {
+                AutoReset = true,
+                Interval = TimeSpan.FromSeconds(1),
+                Enabled = false
+            };
+            launchCountdownTimer.TimeElapsed += LaunchCountdownTimer_TimeElapsed;
+            WindowManager.AddAndInitializeControl(launchCountdownTimer);
         }
 
         /// <summary>
@@ -264,6 +281,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected override void StartGame()
         {
+            // Ensure countdown state is reset when game actually starts
+            if (launchCountdownActive)
+            {
+                StopLaunchCountdown();
+            }
             if (fsw != null)
                 fsw.EnableRaisingEvents = true;
 
@@ -275,6 +297,9 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         protected override void GameProcessExited()
         {
+            // Reset any lingering countdown on game exit
+            if (launchCountdownActive)
+                StopLaunchCountdown();
             gameSaved = false;
 
             if (fsw != null)
@@ -297,6 +322,59 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 RequestReadyStatus();
             }
+        }
+
+        /// <summary>
+        /// Starts a lobby countdown from the given number of seconds down to 1, then calls finished.
+        /// Each tick invokes tickCallback with the current remaining seconds.
+        /// </summary>
+        /// <param name="seconds">Seconds to count down from (inclusive).</param>
+        /// <param name="tickCallback">Invoked every second with remaining seconds.</param>
+        /// <param name="finishedCallback">Invoked after reaching 1 and completing the countdown.</param>
+        protected void StartLaunchCountdown(int seconds, Action<int> tickCallback, Action finishedCallback)
+        {
+            if (seconds <= 0)
+            {
+                finishedCallback?.Invoke();
+                return;
+            }
+
+            launchCountdownRemaining = seconds;
+            launchCountdownTick = tickCallback;
+            launchCountdownFinished = finishedCallback;
+            launchCountdownActive = true;
+            UpdateLaunchGameButtonStatus();
+
+            // Fire the first tick immediately for instant feedback
+            launchCountdownTick?.Invoke(launchCountdownRemaining);
+
+            launchCountdownTimer.Enabled = true;
+            launchCountdownTimer.Start();
+        }
+
+        private void LaunchCountdownTimer_TimeElapsed(object sender, EventArgs e)
+        {
+            // Decrement and emit next tick; when reaching zero, finish
+            launchCountdownRemaining--;
+
+            if (launchCountdownRemaining >= 1)
+            {
+                launchCountdownTick?.Invoke(launchCountdownRemaining);
+                return;
+            }
+
+            // Countdown complete
+            StopLaunchCountdown();
+            launchCountdownFinished?.Invoke();
+        }
+
+        private void StopLaunchCountdown()
+        {
+            launchCountdownTimer.Enabled = false;
+            launchCountdownActive = false;
+            launchCountdownTick = null;
+            launchCountdownFinished = null;
+            UpdateLaunchGameButtonStatus();
         }
 
         private void GenerateGameID()
@@ -1185,7 +1263,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected override bool UpdateLaunchGameButtonStatus()
         {
             if (IsHost)
-                btnLaunchGame.Enabled = base.UpdateLaunchGameButtonStatus() && GameMode != null && Map != null;
+                btnLaunchGame.Enabled = base.UpdateLaunchGameButtonStatus() && GameMode != null && Map != null && !launchCountdownActive;
             else
                 btnLaunchGame.Enabled = base.UpdateLaunchGameButtonStatus() && !chkAutoReady.Checked;
 

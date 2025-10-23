@@ -71,6 +71,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 new StringCommandHandler(PlayerExtraOptions.CNCNET_MESSAGE_KEY, ApplyPlayerExtraOptions),
                 new StringCommandHandler("GO", ApplyGameOptions),
                 new StringCommandHandler("START", NonHostLaunchGame),
+                new StringCommandHandler("COUNTDOWN", HandleCountdownCommand),
                 new NotificationHandler("AISPECS", HandleNotification, AISpectatorsNotification),
                 new NotificationHandler("GETREADY", HandleNotification, GetReadyNotification),
                 new NotificationHandler("INSFSPLRS", HandleNotification, InsufficientPlayersNotification),
@@ -111,24 +112,24 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         public event EventHandler GameLeft;
 
-        private TunnelHandler tunnelHandler;
+    private readonly TunnelHandler tunnelHandler;
         private TunnelSelectionWindow tunnelSelectionWindow;
         private XNAClientButton btnChangeTunnel;
 
         private Channel channel;
-        private CnCNetManager connectionManager;
-        private string localGame;
+    private readonly CnCNetManager connectionManager;
+    private readonly string localGame;
 
         private readonly GameHostInactiveChecker gameHostInactiveChecker;
 
-        private GameCollection gameCollection;
-        private CnCNetUserData cncnetUserData;
+    private readonly GameCollection gameCollection;
+    private readonly CnCNetUserData cncnetUserData;
         private readonly PrivateMessagingWindow pmWindow;
         private GlobalContextMenu globalContextMenu;
 
         private string hostName;
 
-        private CommandHandlerBase[] ctcpCommandHandlers;
+    private readonly CommandHandlerBase[] ctcpCommandHandlers;
 
         private IRCColor chatColor;
 
@@ -144,12 +145,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private string gameFilesHash;
 
-        private List<string> hostUploadedMaps = new List<string>();
-        private List<string> chatCommandDownloadedMaps = new List<string>();
+    private readonly List<string> hostUploadedMaps = new List<string>();
+    private readonly List<string> chatCommandDownloadedMaps = new List<string>();
 
         private MapSharingConfirmationPanel mapSharingConfirmationPanel;
 
-        private Random random;
+    private readonly Random random;
 
         /// <summary>
         /// The SHA1 of the latest selected map.
@@ -669,11 +670,15 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         /// </summary>
         protected override void HostLaunchGame()
         {
+            // Always perform a countdown before launching
+            List<int> playerPorts = new List<int>();
+            StringBuilder startMsgBuilder = new StringBuilder();
+
             if (Players.Count > 1)
             {
                 AddNotice("Contacting tunnel server...".L10N("Client:Main:ConnectingTunnel"));
 
-                List<int> playerPorts = tunnelHandler.CurrentTunnel.GetPlayerPortInfo(Players.Count);
+                playerPorts = tunnelHandler.CurrentTunnel.GetPlayerPortInfo(Players.Count);
 
                 if (playerPorts.Count < Players.Count)
                 {
@@ -684,27 +689,39 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                     return;
                 }
 
-                StringBuilder sb = new StringBuilder("START ");
-                sb.Append(UniqueGameID);
+                startMsgBuilder.Append("START ");
+                startMsgBuilder.Append(UniqueGameID);
                 for (int pId = 0; pId < Players.Count; pId++)
                 {
                     Players[pId].Port = playerPorts[pId];
-                    sb.Append(";");
-                    sb.Append(Players[pId].Name);
-                    sb.Append(";");
-                    sb.Append(tunnelHandler.CurrentTunnel.Address + ":");
-                    sb.Append(playerPorts[pId]);
+                    startMsgBuilder.Append(";");
+                    startMsgBuilder.Append(Players[pId].Name);
+                    startMsgBuilder.Append(";");
+                    startMsgBuilder.Append(tunnelHandler.CurrentTunnel.Address + ":");
+                    startMsgBuilder.Append(playerPorts[pId]);
                 }
-                channel.SendCTCPMessage(sb.ToString(), QueuedMessageType.SYSTEM_MESSAGE, 10);
             }
             else
             {
-                Logger.Log("One player MP -- starting!");
+                Logger.Log("One player MP -- preparing to start!");
+                startMsgBuilder.Append("START ");
+                startMsgBuilder.Append(UniqueGameID);
+                startMsgBuilder.Append(";");
+                startMsgBuilder.Append(ProgramConstants.PLAYERNAME);
+                startMsgBuilder.Append(";");
+                startMsgBuilder.Append("127.0.0.1:0");
             }
 
             cncnetUserData.AddRecentPlayers(Players.Select(p => p.Name), channel.UIName);
 
-            StartGame();
+            // Begin 5->1 countdown; broadcast COUNTDOWN ticks and finally send START then launch
+            StartLaunchCountdown(5,
+                tick => channel.SendCTCPMessage($"COUNTDOWN {tick}", QueuedMessageType.SYSTEM_MESSAGE, 10),
+                () =>
+                {
+                    channel.SendCTCPMessage(startMsgBuilder.ToString(), QueuedMessageType.SYSTEM_MESSAGE, 10);
+                    StartGame();
+                });
         }
 
         protected override void RequestPlayerOptions(int side, int color, int start, int team)
@@ -1380,6 +1397,18 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             cncnetUserData.AddRecentPlayers(recentPlayers, channel.UIName);
 
             StartGame();
+        }
+
+        private void HandleCountdownCommand(string sender, string data)
+        {
+            if (sender != hostName)
+                return;
+
+            int seconds = Conversions.IntFromString(data, -1);
+            if (seconds < 1)
+                return;
+
+            AddNotice(string.Format("Game starting in {0}...", seconds));
         }
 
         protected override void StartGame()
