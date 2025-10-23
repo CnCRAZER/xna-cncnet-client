@@ -377,6 +377,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             UpdateLaunchGameButtonStatus();
         }
 
+        protected bool IsLaunchCountdownActive => launchCountdownActive;
+
         private void GenerateGameID()
         {
             int i = 0;

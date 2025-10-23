@@ -528,13 +528,24 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             // Start a 5->1 countdown; broadcast ticks and launch at finish
             StartLaunchCountdown(5,
-                tick => BroadcastMessage($"{COUNTDOWN_COMMAND} {tick}"),
+                tick => {
+                    // Host also sees the notices locally
+                    AddNotice(string.Format("Game starting in {0}...", tick));
+                    BroadcastMessage($"{COUNTDOWN_COMMAND} {tick}");
+                },
                 () => BroadcastMessage(LAUNCH_GAME_COMMAND + " " + UniqueGameID));
         }
 
         protected override string GetIPAddressForPlayer(PlayerInfo player)
         {
             var lpInfo = (LANPlayerInfo)player;
+
+            // Cancel countdown if someone leaves while counting down
+            if (IsLaunchCountdownActive)
+            {
+                AddNotice("Countdown cancelled: a player left the lobby.", Color.Yellow);
+                StopLaunchCountdown();
+            }
             return lpInfo.IPAddress;
         }
 
@@ -658,6 +669,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             Locked = false;
 
             btnLockGame.Text = "Lock Game".L10N("Client:Main:LockGame");
+
+            // If host unlocks during a countdown, cancel it
+            if (IsLaunchCountdownActive)
+            {
+                AddNotice("Countdown cancelled: the host unlocked the room.", Color.Yellow);
+                StopLaunchCountdown();
+            }
 
             if (manual)
                 AddNotice("You've unlocked the game room.".L10N("Client:Main:RoomUnockedByYou"));
@@ -983,6 +1001,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             CopyPlayerDataToUI();
             BroadcastPlayerOptions();
             UpdateDiscordPresence();
+
+            // Cancel countdown if someone leaves while counting down
+            if (IsLaunchCountdownActive)
+            {
+                AddNotice("Countdown cancelled: a player left the lobby.", Color.Yellow);
+                StopLaunchCountdown();
+            }
         }
 
         private void HandleGameOptionsMessage(string data)

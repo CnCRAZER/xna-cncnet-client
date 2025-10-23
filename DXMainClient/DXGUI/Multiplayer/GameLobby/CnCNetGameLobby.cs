@@ -511,7 +511,14 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 BtnLeaveGame_LeftClick(this, EventArgs.Empty);
             }
             else
+            {
                 UpdateDiscordPresence();
+                if (IsLaunchCountdownActive)
+                {
+                    AddNotice("Countdown cancelled: a player left the lobby.", Color.Yellow);
+                    StopLaunchCountdown();
+                }
+            }
         }
 
         private void Channel_UserKicked(object sender, UserNameEventArgs e)
@@ -534,6 +541,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 CopyPlayerDataToUI();
                 UpdateDiscordPresence();
                 ClearReadyStatuses();
+                if (IsLaunchCountdownActive)
+                {
+                    AddNotice("Countdown cancelled: a player left the lobby.", Color.Yellow);
+                    StopLaunchCountdown();
+                }
             }
         }
 
@@ -716,7 +728,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             // Begin 5->1 countdown; broadcast COUNTDOWN ticks and finally send START then launch
             StartLaunchCountdown(5,
-                tick => channel.SendCTCPMessage($"COUNTDOWN {tick}", QueuedMessageType.SYSTEM_MESSAGE, 10),
+                tick => { AddNotice(string.Format("Game starting in {0}...", tick)); channel.SendCTCPMessage($"COUNTDOWN {tick}", QueuedMessageType.SYSTEM_MESSAGE, 10); },
                 () =>
                 {
                     channel.SendCTCPMessage(startMsgBuilder.ToString(), QueuedMessageType.SYSTEM_MESSAGE, 10);
@@ -857,6 +869,13 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             pInfo.Ready = readyStatus > 0;
             pInfo.AutoReady = readyStatus > 1;
+
+            // If any non-host becomes not ready during countdown, cancel it
+            if (readyStatus == 0 && IsLaunchCountdownActive)
+            {
+                AddNotice("Countdown cancelled: a player is not ready.", Color.Yellow);
+                StopLaunchCountdown();
+            }
 
             CopyPlayerDataToUI();
             BroadcastPlayerOptions();
@@ -1649,6 +1668,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 string.Format("MODE {0} -i", channel.ChannelName), QueuedMessageType.INSTANT_MESSAGE, -1));
 
             Locked = false;
+            // If host unlocks during a countdown, cancel it
+            if (IsLaunchCountdownActive)
+            {
+                AddNotice("Countdown cancelled: the host unlocked the room.", Color.Yellow);
+                StopLaunchCountdown();
+            }
             if (announce)
                 AddNotice("The game room has been unlocked.".L10N("Client:Main:GameRoomUnlocked"));
             btnLockGame.Text = "Lock Game".L10N("Client:Main:LockGame");
