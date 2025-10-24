@@ -68,6 +68,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private readonly OptionsWindow optionsWindow;
 
         private PlayerListBox lbPlayerList;
+        private XNASuggestionTextBox tbPlayerSearch;
         private ChatListBox lbChatMessages;
         private GameListBox lbGameList;
         private GlobalContextMenu globalContextMenu;
@@ -217,6 +218,23 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbPlayerList.DoubleLeftClick += LbPlayerList_DoubleLeftClick;
             lbPlayerList.RightClick += LbPlayerList_RightClick;
 
+            // Player search box (nickname filter)
+            tbPlayerSearch = new XNASuggestionTextBox(WindowManager);
+            tbPlayerSearch.Name = nameof(tbPlayerSearch);
+            tbPlayerSearch.ClientRectangle = new Rectangle(
+                lbPlayerList.X, 12, lbPlayerList.Width, 21);
+            tbPlayerSearch.Suggestion = "Search players...".L10N("Client:Main:SearchPlayers");
+            tbPlayerSearch.MaximumTextLength = 48;
+            tbPlayerSearch.InputReceived += (s, e) =>
+            {
+                RefreshPlayerList(this, EventArgs.Empty);
+                lbPlayerList.ViewTop = 0;
+            };
+
+            // shift the player list down to make room for the search box
+            lbPlayerList.ClientRectangle = new Rectangle(
+                lbPlayerList.X, 41, lbPlayerList.Width, btnLogout.Y - 47);
+
             globalContextMenu = new GlobalContextMenu(WindowManager, connectionManager, cncnetUserData, pmWindow);
             globalContextMenu.JoinEvent += (sender, args) => JoinUser(args.IrcUser, connectionManager.MainChannel);
 
@@ -342,6 +360,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             AddChild(btnNewGame);
             AddChild(btnJoinGame);
             AddChild(btnLogout);
+            AddChild(tbPlayerSearch);
             AddChild(lbPlayerList);
             AddChild(lbChatMessages);
             AddChild(lbGameList);
@@ -1380,6 +1399,12 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbChatMessages.Clear();
             currentChatChannel.Messages.ForEach(msg => AddMessageToChat(msg));
 
+            // Reset player filter when switching channels to avoid confusing empty lists
+            if (tbPlayerSearch != null)
+            {
+                tbPlayerSearch.Text = string.Empty;
+            }
+
             RefreshPlayerList(this, EventArgs.Empty);
 
             if (currentChatChannel.ChannelName != "#cncnet" &&
@@ -1399,12 +1424,16 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             // Note: IUserCollection.GetFirst() is not guaranteed to be implemented, unless it is a SortedUserCollection
             Debug.Assert(currentChatChannel.Users is SortedUserCollection<ChannelUser>, "Channel 'users' is supposed to be a SortedUserCollection");
             var current = currentChatChannel.Users.GetFirst();
+            string filter = tbPlayerSearch?.Text;
+            bool hasFilter = !(string.IsNullOrWhiteSpace(filter) || filter == tbPlayerSearch?.Suggestion);
+            string filterUpper = hasFilter ? filter!.ToUpperInvariant() : string.Empty;
             while (current != null)
             {
                 var user = current.Value;
                 user.IRCUser.IsFriend = cncnetUserData.IsFriend(user.IRCUser.Name);
                 user.IRCUser.IsIgnored = cncnetUserData.IsIgnored(user.IRCUser.Ident);
-                lbPlayerList.AddUser(user);
+                if (!hasFilter || user.IRCUser.Name.ToUpperInvariant().Contains(filterUpper))
+                    lbPlayerList.AddUser(user);
                 current = current.Next;
             }
 
@@ -1430,6 +1459,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             var ircUser = e.User.IRCUser;
             var item = lbPlayerList.Items.Find(i => i.Text.StartsWith(ircUser.Name));
+
+            if (item == null)
+                return; // user is filtered out or not visible
 
             if (ircUser.GameID < 0 || ircUser.GameID >= gameCollection.GameList.Count)
                 item.Texture = unknownGameIcon;

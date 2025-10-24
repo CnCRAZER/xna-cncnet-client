@@ -54,6 +54,7 @@ namespace DTAClient.DXGUI.Multiplayer
         private Random random;
 
         XNAListBox lbPlayerList;
+        XNASuggestionTextBox tbPlayerSearch;
         ChatListBox lbChatMessages;
         GameListBox lbGameList;
 
@@ -148,11 +149,24 @@ namespace DTAClient.DXGUI.Multiplayer
             lbPlayerList = new XNAListBox(WindowManager);
             lbPlayerList.Name = "lbPlayerList";
             lbPlayerList.ClientRectangle = new Rectangle(Width - 202,
-                lbGameList.Y, 190,
-                lbGameList.Height);
+                41, 190,
+                btnMainMenu.Y - 53);
             lbPlayerList.PanelBackgroundDrawMode = PanelBackgroundImageDrawMode.STRETCHED;
             lbPlayerList.BackgroundTexture = AssetLoader.CreateTexture(new Color(0, 0, 0, 128), 1, 1);
             lbPlayerList.LineHeight = 16;
+
+            // Player nickname search box
+            tbPlayerSearch = new XNASuggestionTextBox(WindowManager);
+            tbPlayerSearch.Name = "tbPlayerSearch";
+            tbPlayerSearch.ClientRectangle = new Rectangle(lbPlayerList.X, 12, lbPlayerList.Width, 21);
+            tbPlayerSearch.Suggestion = "Search players...".L10N("Client:Main:SearchPlayers");
+            tbPlayerSearch.MaximumTextLength = 48;
+            tbPlayerSearch.InputReceived += (s, e) =>
+            {
+                // re-render the list based on filter
+                RebuildLANPlayerList();
+                lbPlayerList.ViewTop = 0;
+            };
 
             lbChatMessages = new ChatListBox(WindowManager);
             lbChatMessages.Name = "lbChatMessages";
@@ -212,6 +226,7 @@ namespace DTAClient.DXGUI.Multiplayer
             AddChild(btnJoinGame);
             AddChild(btnMainMenu);
 
+            AddChild(tbPlayerSearch);
             AddChild(lbPlayerList);
             AddChild(lbChatMessages);
             AddChild(lbGameList);
@@ -267,6 +282,22 @@ namespace DTAClient.DXGUI.Multiplayer
             lanGameLoadingLobby.GameLeft += LanGameLoadingLobby_GameLeft;
 
             WindowManager.GameClosing += WindowManager_GameClosing;
+        }
+
+        private void RebuildLANPlayerList()
+        {
+            string filter = tbPlayerSearch?.Text;
+            bool hasFilter = !(string.IsNullOrWhiteSpace(filter) || filter == tbPlayerSearch?.Suggestion);
+            string filterUpper = hasFilter ? filter!.ToUpperInvariant() : string.Empty;
+
+            lbPlayerList.Clear();
+            foreach (var p in players)
+            {
+                if (!hasFilter || p.Name.ToUpperInvariant().Contains(filterUpper))
+                {
+                    lbPlayerList.AddItem(p.Name, p.GameTexture);
+                }
+            }
         }
 
         private void LanGameLoadingLobby_GameLeft(object sender, EventArgs e)
@@ -447,7 +478,7 @@ namespace DTAClient.DXGUI.Multiplayer
 
                         user = new LANLobbyUser(name, gameTexture, endPoint);
                         players.Add(user);
-                        lbPlayerList.AddItem(user.Name, gameTexture);
+                        RebuildLANPlayerList();
                     }
 
                     user.TimeWithoutRefresh = TimeSpan.Zero;
@@ -474,9 +505,9 @@ namespace DTAClient.DXGUI.Multiplayer
                         return;
 
                     int index = players.FindIndex(p => p == user);
-
-                    players.RemoveAt(index);
-                    lbPlayerList.Items.RemoveAt(index);
+                    if (index >= 0)
+                        players.RemoveAt(index);
+                    RebuildLANPlayerList();
                     break;
                 case "GAME":
                     if (user == null)
@@ -648,8 +679,8 @@ namespace DTAClient.DXGUI.Multiplayer
 
                 if (players[i].TimeWithoutRefresh > TimeSpan.FromSeconds(INACTIVITY_REMOVE_TIME))
                 {
-                    lbPlayerList.Items.RemoveAt(i);
                     players.RemoveAt(i);
+                    RebuildLANPlayerList();
                     i--;
                 }
             }

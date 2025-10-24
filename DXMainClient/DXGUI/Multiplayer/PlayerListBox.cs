@@ -61,6 +61,8 @@ namespace DTAClient.DXGUI.Multiplayer
         public void UpdateUserInfo(ChannelUser user)
         {
             XNAListBoxItem item = Items.Find(x => x.Tag == user);
+            if (item == null)
+                return; // could be filtered out by nickname search
             UpdateItemInfo(user, item);
         }
 
