@@ -218,11 +218,14 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbPlayerList.DoubleLeftClick += LbPlayerList_DoubleLeftClick;
             lbPlayerList.RightClick += LbPlayerList_RightClick;
 
-            // Player search box (nickname filter)
+            // Player search box (nickname filter) placed above the bottom buttons
             tbPlayerSearch = new XNASuggestionTextBox(WindowManager);
             tbPlayerSearch.Name = nameof(tbPlayerSearch);
+            int playerSearchHeight = btnNewGame.Height;
+            int playerSearchMargin = 6;
+            int playerSearchY = btnNewGame.Y - playerSearchHeight - playerSearchMargin;
             tbPlayerSearch.ClientRectangle = new Rectangle(
-                lbPlayerList.X, 12, lbPlayerList.Width, 21);
+                lbPlayerList.X, playerSearchY, lbPlayerList.Width, playerSearchHeight);
             tbPlayerSearch.Suggestion = "Search players...".L10N("Client:Main:SearchPlayers");
             tbPlayerSearch.MaximumTextLength = 48;
             tbPlayerSearch.InputReceived += (s, e) =>
@@ -231,9 +234,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 lbPlayerList.ViewTop = 0;
             };
 
-            // shift the player list down to make room for the search box
+            // reduce player list height to make room for the search box
             lbPlayerList.ClientRectangle = new Rectangle(
-                lbPlayerList.X, 41, lbPlayerList.Width, btnLogout.Y - 47);
+                lbPlayerList.X, 41, lbPlayerList.Width, playerSearchY - 41 - playerSearchMargin);
 
             globalContextMenu = new GlobalContextMenu(WindowManager, connectionManager, cncnetUserData, pmWindow);
             globalContextMenu.JoinEvent += (sender, args) => JoinUser(args.IrcUser, connectionManager.MainChannel);
