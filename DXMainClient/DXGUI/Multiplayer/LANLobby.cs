@@ -155,13 +155,10 @@ namespace DTAClient.DXGUI.Multiplayer
             lbPlayerList.BackgroundTexture = AssetLoader.CreateTexture(new Color(0, 0, 0, 128), 1, 1);
             lbPlayerList.LineHeight = 16;
 
-            // Player nickname search box placed above the bottom buttons
+            // Player nickname search box
             tbPlayerSearch = new XNASuggestionTextBox(WindowManager);
             tbPlayerSearch.Name = "tbPlayerSearch";
-            int playerSearchHeight = btnNewGame.Height;
-            int playerSearchMargin = 6;
-            int playerSearchY = btnMainMenu.Y - playerSearchHeight - playerSearchMargin;
-            tbPlayerSearch.ClientRectangle = new Rectangle(lbPlayerList.X, playerSearchY, lbPlayerList.Width, playerSearchHeight);
+            tbPlayerSearch.ClientRectangle = new Rectangle(lbPlayerList.X, 12, lbPlayerList.Width, 21);
             tbPlayerSearch.Suggestion = "Search players...".L10N("Client:Main:SearchPlayers");
             tbPlayerSearch.MaximumTextLength = 48;
             tbPlayerSearch.InputReceived += (s, e) =>
@@ -170,10 +167,6 @@ namespace DTAClient.DXGUI.Multiplayer
                 RebuildLANPlayerList();
                 lbPlayerList.ViewTop = 0;
             };
-
-            // reduce player list height to make room for the search box
-            lbPlayerList.ClientRectangle = new Rectangle(
-                lbPlayerList.X, 41, lbPlayerList.Width, playerSearchY - 41 - playerSearchMargin);
 
             lbChatMessages = new ChatListBox(WindowManager);
             lbChatMessages.Name = "lbChatMessages";
