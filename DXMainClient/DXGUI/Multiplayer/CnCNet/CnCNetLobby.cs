@@ -209,9 +209,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             lbPlayerList = new PlayerListBox(WindowManager, gameCollection);
             lbPlayerList.Name = nameof(lbPlayerList);
+            // Place list under the player search box (y=41 matches list/toolbar spacing used elsewhere)
             lbPlayerList.ClientRectangle = new Rectangle(Width - 202,
-                20, 190,
-                btnLogout.Y - 26);
+                41, 190,
+                btnLogout.Y - 47);
             lbPlayerList.PanelBackgroundDrawMode = PanelBackgroundImageDrawMode.STRETCHED;
             lbPlayerList.BackgroundTexture = AssetLoader.CreateTexture(new Color(0, 0, 0, 128), 1, 1);
             lbPlayerList.LineHeight = 16;
@@ -231,9 +232,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 lbPlayerList.ViewTop = 0;
             };
 
-            // shift the player list down to make room for the search box
-            lbPlayerList.ClientRectangle = new Rectangle(
-                lbPlayerList.X, 41, lbPlayerList.Width, btnLogout.Y - 47);
+            // list already positioned to sit under the search box
 
             globalContextMenu = new GlobalContextMenu(WindowManager, connectionManager, cncnetUserData, pmWindow);
             globalContextMenu.JoinEvent += (sender, args) => JoinUser(args.IrcUser, connectionManager.MainChannel);
