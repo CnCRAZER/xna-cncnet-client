@@ -149,6 +149,10 @@ public static class Updater
     private static readonly List<UpdaterFileInfo> FileInfosToDownload = new();
     private static readonly List<UpdaterFileInfo> ServerFileInfos = new();
     private static readonly List<UpdaterFileInfo> LocalFileInfos = new();
+    
+    // Cache file hashes for the current process to avoid re-hashing unchanged files
+    private static readonly object HashCacheLock = new();
+    private static readonly Dictionary<string, (string Hash, long Length, DateTime LastWriteUtc)> HashCache = new();
 
 #if NETFRAMEWORK
     private static readonly ProgressMessageHandler SharedProgressMessageHandler = new(new HttpClientHandler
@@ -456,17 +460,45 @@ public static class Updater
 
     internal static string GetUniqueIdForFile(string filePath)
     {
+        FileInfo fi = SafePath.GetFile(GamePath, filePath);
+
+        // Return cached value if file hasn't changed (size + LastWriteUtc)
+        string cacheKey = fi.FullName;
+        lock (HashCacheLock)
+        {
+            if (HashCache.TryGetValue(cacheKey, out var cached) &&
+                cached.Length == fi.Length && cached.LastWriteUtc == fi.LastWriteTimeUtc)
+            {
+                return cached.Hash;
+            }
+        }
+
+        // Compute MD5 using a buffered stream and sequential scan hint
+#if NETFRAMEWORK
         using var md = MD5.Create();
         md.Initialize();
-        using FileStream fs = SafePath.GetFile(GamePath, filePath).OpenRead();
+        using var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 131072, FileOptions.SequentialScan);
         md.ComputeHash(fs);
-        var builder = new StringBuilder();
+        var hashBytes = md.Hash;
+#else
+        using var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 131072, FileOptions.SequentialScan);
+        using var bs = new BufferedStream(fs, 131072);
+        var hashBytes = MD5.HashData(bs);
+#endif
 
-        foreach (byte num2 in md.Hash)
-            builder.Append(num2);
+        // Preserve existing identifier format: decimal concatenation of byte values
+        var builder = new StringBuilder(48);
+        foreach (byte b in hashBytes)
+            builder.Append(b);
+        var result = builder.ToString();
 
-        md.Clear();
-        return builder.ToString();
+        // Update cache
+        lock (HashCacheLock)
+        {
+            HashCache[cacheKey] = (result, fi.Length, fi.LastWriteTimeUtc);
+        }
+
+        return result;
     }
 
     /// <summary>
