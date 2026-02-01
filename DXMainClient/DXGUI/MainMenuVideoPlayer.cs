@@ -5,10 +5,11 @@ using Rampastring.Tools;
 using System;
 using System.IO;
 
-namespace ClientGUI
+namespace DTAClient.DXGUI
 {
     /// <summary>
     /// Handles video playback for the main menu background with optimized resource usage.
+    /// This component is only available in DirectX builds.
     /// </summary>
     public class MainMenuVideoPlayer : IDisposable
     {
