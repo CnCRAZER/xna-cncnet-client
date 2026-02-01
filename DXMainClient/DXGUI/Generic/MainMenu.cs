@@ -1240,58 +1240,42 @@ namespace DTAClient.DXGUI.Generic
                 return;
             }
 
+            // Check if AssetLoader is initialized
+            if (!Rampastring.XNAUI.AssetLoader.IsInitialized)
+            {
+                Logger.Log("AssetLoader not initialized, cannot load video background.");
+                isVideoBackgroundEnabled = false;
+                return;
+            }
+
             try
             {
-                // Check for video file in MainMenu folder with common video formats
-                string[] videoExtensions = { ".wmv", ".mp4", ".avi" };
-                string videoPath = null;
+                // Try to load the main menu background video from content
+                const string videoAssetName = "mainmenubg";
+                
+                videoPlayer = new MainMenuVideoPlayer(videoAssetName);
+                bool initialized = videoPlayer.Initialize(WindowManager.GraphicsDevice);
 
-                foreach (string extension in videoExtensions)
+                if (initialized)
                 {
-                    string testPath = SafePath.CombineFilePath(
-                        ProgramConstants.GamePath,
-                        ProgramConstants.BASE_RESOURCE_PATH,
-                        "MainMenu",
-                        $"mainmenubg{extension}"
-                    );
-
-                    if (File.Exists(testPath))
-                    {
-                        videoPath = testPath;
-                        break;
-                    }
-                }
-
-                if (videoPath != null)
-                {
-                    videoPlayer = new MainMenuVideoPlayer(videoPath);
-                    bool initialized = videoPlayer.Initialize(WindowManager.GraphicsDevice);
-
-                    if (initialized)
-                    {
-                        isVideoBackgroundEnabled = true;
-                        Logger.Log($"Main menu video background initialized: {videoPath}");
-                    }
-                    else
-                    {
-                        // Failed to initialize, cleanup and fall back to static background
-                        videoPlayer?.Dispose();
-                        videoPlayer = null;
-                        isVideoBackgroundEnabled = false;
-                    }
+                    isVideoBackgroundEnabled = true;
+                    Logger.Log($"Main menu video background initialized: {videoAssetName}");
                 }
                 else
                 {
-                    Logger.Log("No main menu video background file found. Using static background.");
+                    // Failed to initialize, cleanup and fall back to static background
+                    videoPlayer?.Dispose();
+                    videoPlayer = null;
                     isVideoBackgroundEnabled = false;
+                    Logger.Log("Main menu video background failed to initialize, falling back to static background.");
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log($"Error initializing video background: {ex.Message}");
-                isVideoBackgroundEnabled = false;
+                Logger.Log($"Error initializing main menu video background: {ex.Message}");
                 videoPlayer?.Dispose();
                 videoPlayer = null;
+                isVideoBackgroundEnabled = false;
             }
         }
 

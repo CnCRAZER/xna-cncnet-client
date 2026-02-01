@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Media;
 using Rampastring.Tools;
+using Rampastring.XNAUI;
 using System;
 using System.IO;
 
@@ -18,11 +19,11 @@ namespace DTAClient.DXGUI
         private Texture2D videoTexture;
         private bool isDisposed;
         private bool isVideoAvailable;
-        private readonly string videoPath;
+        private readonly string videoAssetName;
 
-        public MainMenuVideoPlayer(string videoFilePath)
+        public MainMenuVideoPlayer(string assetName)
         {
-            videoPath = videoFilePath;
+            videoAssetName = assetName;
         }
 
         /// <summary>
@@ -47,24 +48,21 @@ namespace DTAClient.DXGUI
 
             try
             {
-                // Check if video file exists
-                if (!File.Exists(videoPath))
+                // Initialize video player
+                videoPlayer = new VideoPlayer();
+                
+                // Load the video from content
+                video = AssetLoader.LoadVideo(videoAssetName);
+
+                if (video == null)
                 {
-                    Logger.Log($"Main menu video not found at: {videoPath}");
+                    Logger.Log($"Main menu video asset not found: {videoAssetName}");
                     isVideoAvailable = false;
                     return false;
                 }
 
-                // Initialize video player
-                videoPlayer = new VideoPlayer();
-                
-                // Load the video using URI
-                string fullPath = Path.GetFullPath(videoPath);
-                Uri videoUri = new Uri(fullPath, UriKind.Absolute);
-                video = Video.FromUri(videoUri);
-
                 isVideoAvailable = true;
-                Logger.Log($"Main menu video loaded successfully: {videoPath}");
+                Logger.Log($"Main menu video loaded successfully: {videoAssetName}");
                 return true;
             }
             catch (Exception ex)
