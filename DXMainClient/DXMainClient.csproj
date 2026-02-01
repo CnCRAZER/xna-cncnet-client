@@ -33,6 +33,11 @@
     <EmbeddedResource Remove="Resources\**" />
     <None Remove="Resources\**" />
   </ItemGroup>
+  <ItemGroup Condition="$(Configuration.Contains('GL'))">
+    <!-- MainMenuVideoPlayer requires DirectX-specific MonoGame Media components -->
+    <Compile Remove="DXGUI/MainMenuVideoPlayer.cs" />
+    <None Include="DXGUI/MainMenuVideoPlayer.cs" />
+  </ItemGroup>
   <ItemGroup>
     <None Remove="Icons\*.png" />
     <EmbeddedResource Include="Icons\*.png" />

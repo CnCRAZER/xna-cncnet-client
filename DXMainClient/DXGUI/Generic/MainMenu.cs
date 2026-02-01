@@ -148,7 +148,9 @@ namespace DTAClient.DXGUI.Generic
 
         private readonly bool isMediaPlayerAvailable;
 
+#if DX
         private MainMenuVideoPlayer videoPlayer;
+#endif
         private bool isVideoBackgroundEnabled;
 
         private CancellationTokenSource cncnetPlayerCountCancellationSource;
@@ -179,8 +181,10 @@ namespace DTAClient.DXGUI.Generic
 
             WindowManager.CenterControlOnScreen(this);
 
+#if DX
             // Initialize video player for animated background
             InitializeVideoBackground();
+#endif
 
             btnNewCampaign = new XNAClientButton(WindowManager);
             btnNewCampaign.Name = nameof(btnNewCampaign);
@@ -578,12 +582,14 @@ namespace DTAClient.DXGUI.Generic
             if (connectionManager.IsConnected)
                 connectionManager.Disconnect();
 
+#if DX
             // Clean up video player resources
             if (videoPlayer != null)
             {
                 videoPlayer.Dispose();
                 videoPlayer = null;
             }
+#endif
         }
 
         /// <summary>
@@ -648,8 +654,10 @@ namespace DTAClient.DXGUI.Generic
 
             PlayMusic();
 
+#if DX
             // Start video background if available
             StartVideoBackground();
+#endif
 
             if (!ClientConfiguration.Instance.ModMode)
             {
@@ -1021,6 +1029,7 @@ namespace DTAClient.DXGUI.Generic
         {
             lock (locker)
             {
+#if DX
                 // Draw video background if available and enabled
                 if (isVideoBackgroundEnabled && videoPlayer != null && videoPlayer.IsPlaying)
                 {
@@ -1041,6 +1050,10 @@ namespace DTAClient.DXGUI.Generic
                     // Use standard drawing with static background
                     base.Draw(gameTime);
                 }
+#else
+                // GL builds don't support video, use static background
+                base.Draw(gameTime);
+#endif
             }
         }
 
@@ -1146,11 +1159,13 @@ namespace DTAClient.DXGUI.Generic
             if (UserINISettings.Instance.StopMusicOnMenu)
                 PlayMusic();
 
+#if DX
             // Resume video background if enabled
             if (isVideoBackgroundEnabled && videoPlayer != null && !videoPlayer.IsPlaying)
             {
                 videoPlayer.Play(0.0f);
             }
+#endif
 
             if (!ClientConfiguration.Instance.ModMode && UserINISettings.Instance.CheckForUpdates)
             {
@@ -1166,11 +1181,13 @@ namespace DTAClient.DXGUI.Generic
             if (UserINISettings.Instance.StopMusicOnMenu)
                 MusicOff();
 
+#if DX
             // Pause video background to save resources when not on main menu
             if (videoPlayer != null && videoPlayer.IsPlaying)
             {
                 videoPlayer.Pause();
             }
+#endif
         }
 
         private void MusicOff()
@@ -1208,6 +1225,7 @@ namespace DTAClient.DXGUI.Generic
             }
         }
 
+#if DX
         /// <summary>
         /// Initializes the video player for the main menu background.
         /// Checks for video file existence and creates the video player if found.
@@ -1316,6 +1334,11 @@ namespace DTAClient.DXGUI.Generic
                 }
             }
         }
+#else
+        private void InitializeVideoBackground() { /* Video not supported in GL builds */ }
+        private void StartVideoBackground() { /* Video not supported in GL builds */ }
+        private void StopVideoBackground() { /* Video not supported in GL builds */ }
+#endif
 
         private void LaunchMapEditor()
         {
