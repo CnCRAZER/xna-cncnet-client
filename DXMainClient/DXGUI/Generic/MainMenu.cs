@@ -148,6 +148,9 @@ namespace DTAClient.DXGUI.Generic
 
         private readonly bool isMediaPlayerAvailable;
 
+        private MainMenuVideoPlayer videoPlayer;
+        private bool isVideoBackgroundEnabled;
+
         private CancellationTokenSource cncnetPlayerCountCancellationSource;
 
         // Main Menu Buttons
@@ -175,6 +178,9 @@ namespace DTAClient.DXGUI.Generic
             ClientRectangle = new Rectangle(0, 0, BackgroundTexture.Width, BackgroundTexture.Height);
 
             WindowManager.CenterControlOnScreen(this);
+
+            // Initialize video player for animated background
+            InitializeVideoBackground();
 
             btnNewCampaign = new XNAClientButton(WindowManager);
             btnNewCampaign.Name = nameof(btnNewCampaign);
@@ -571,6 +577,13 @@ namespace DTAClient.DXGUI.Generic
 
             if (connectionManager.IsConnected)
                 connectionManager.Disconnect();
+
+            // Clean up video player resources
+            if (videoPlayer != null)
+            {
+                videoPlayer.Dispose();
+                videoPlayer = null;
+            }
         }
 
         /// <summary>
@@ -634,6 +647,9 @@ namespace DTAClient.DXGUI.Generic
             LoadThemeSong();
 
             PlayMusic();
+
+            // Start video background if available
+            StartVideoBackground();
 
             if (!ClientConfiguration.Instance.ModMode)
             {
@@ -1005,7 +1021,26 @@ namespace DTAClient.DXGUI.Generic
         {
             lock (locker)
             {
-                base.Draw(gameTime);
+                // Draw video background if available and enabled
+                if (isVideoBackgroundEnabled && videoPlayer != null && videoPlayer.IsPlaying)
+                {
+                    var videoFrame = videoPlayer.GetCurrentFrame();
+                    if (videoFrame != null)
+                    {
+                        // Draw video frame as background
+                        DrawTexture(videoFrame, new Rectangle(0, 0, Width, Height), Color.White);
+                    }
+                    else
+                    {
+                        // Fallback to static background if video frame is not available
+                        base.Draw(gameTime);
+                    }
+                }
+                else
+                {
+                    // Use standard drawing with static background
+                    base.Draw(gameTime);
+                }
             }
         }
 
@@ -1111,6 +1146,12 @@ namespace DTAClient.DXGUI.Generic
             if (UserINISettings.Instance.StopMusicOnMenu)
                 PlayMusic();
 
+            // Resume video background if enabled
+            if (isVideoBackgroundEnabled && videoPlayer != null && !videoPlayer.IsPlaying)
+            {
+                videoPlayer.Play(0.0f);
+            }
+
             if (!ClientConfiguration.Instance.ModMode && UserINISettings.Instance.CheckForUpdates)
             {
                 // Re-check for updates
@@ -1124,6 +1165,12 @@ namespace DTAClient.DXGUI.Generic
         {
             if (UserINISettings.Instance.StopMusicOnMenu)
                 MusicOff();
+
+            // Pause video background to save resources when not on main menu
+            if (videoPlayer != null && videoPlayer.IsPlaying)
+            {
+                videoPlayer.Pause();
+            }
         }
 
         private void MusicOff()
@@ -1158,6 +1205,115 @@ namespace DTAClient.DXGUI.Generic
             {
                 Logger.Log("Error encountered when checking media player availability. Error message: " + ex.ToString());
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Initializes the video player for the main menu background.
+        /// Checks for video file existence and creates the video player if found.
+        /// </summary>
+        private void InitializeVideoBackground()
+        {
+            // Check if video backgrounds are enabled in settings
+            if (!UserINISettings.Instance.PlayMainMenuVideo)
+            {
+                Logger.Log("Main menu video background disabled in settings.");
+                isVideoBackgroundEnabled = false;
+                return;
+            }
+
+            try
+            {
+                // Check for video file in MainMenu folder with common video formats
+                string[] videoExtensions = { ".wmv", ".mp4", ".avi" };
+                string videoPath = null;
+
+                foreach (string extension in videoExtensions)
+                {
+                    string testPath = SafePath.CombineFilePath(
+                        ProgramConstants.GamePath,
+                        ProgramConstants.BASE_RESOURCE_PATH,
+                        "MainMenu",
+                        $"mainmenubg{extension}"
+                    );
+
+                    if (File.Exists(testPath))
+                    {
+                        videoPath = testPath;
+                        break;
+                    }
+                }
+
+                if (videoPath != null)
+                {
+                    videoPlayer = new MainMenuVideoPlayer(videoPath);
+                    bool initialized = videoPlayer.Initialize(WindowManager.GraphicsDevice);
+
+                    if (initialized)
+                    {
+                        isVideoBackgroundEnabled = true;
+                        Logger.Log($"Main menu video background initialized: {videoPath}");
+                    }
+                    else
+                    {
+                        // Failed to initialize, cleanup and fall back to static background
+                        videoPlayer?.Dispose();
+                        videoPlayer = null;
+                        isVideoBackgroundEnabled = false;
+                    }
+                }
+                else
+                {
+                    Logger.Log("No main menu video background file found. Using static background.");
+                    isVideoBackgroundEnabled = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Error initializing video background: {ex.Message}");
+                isVideoBackgroundEnabled = false;
+                videoPlayer?.Dispose();
+                videoPlayer = null;
+            }
+        }
+
+        /// <summary>
+        /// Starts the video background playback if available.
+        /// Video plays with no audio to avoid interfering with the menu music.
+        /// </summary>
+        private void StartVideoBackground()
+        {
+            if (videoPlayer != null && isVideoBackgroundEnabled)
+            {
+                try
+                {
+                    // Play video with no audio (muted) to avoid conflict with menu music
+                    videoPlayer.Play(0.0f);
+                    Logger.Log("Main menu video background started");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Error starting video background: {ex.Message}");
+                    isVideoBackgroundEnabled = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Stops the video background playback if it's currently playing.
+        /// </summary>
+        private void StopVideoBackground()
+        {
+            if (videoPlayer != null && videoPlayer.IsPlaying)
+            {
+                try
+                {
+                    videoPlayer.Stop();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Error stopping video background: {ex.Message}");
+                }
             }
         }
 
