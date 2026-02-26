@@ -172,20 +172,6 @@ namespace DTAClient.DXGUI.Generic
             ReplayGame replay = replays[lbReplayGameList.SelectedIndex];
             Logger.Log("Loading replay " + replay.FileName);
 
-            // Validate Phobos version before launching
-            // Would be good to prompt user to auto download correct Phobos version for the replay from Github.
-            string currentPhobosVersion = GetCurrentPhobosVersion();
-            if (replay.PhobosVersion != currentPhobosVersion)
-            {
-                var msgBox = new XNAMessageBox(WindowManager, "Version Mismatch".L10N("Client:Main:VersionMismatchTitle"),
-                    string.Format(("Replay Phobos version ({0}) does not match current version ({1}).\n\n" +
-                        "Playback is blocked to prevent desync.").L10N("Client:Main:VersionMismatchText"),
-                        replay.PhobosVersion, currentPhobosVersion),
-                    XNAMessageBoxButtons.OK);
-                msgBox.Show();
-                return;
-            }
-
             // Extract spawn.ini and spawnmap.ini from the replay file
             string spawnIniContent = replay.ExtractSpawnIni();
             string spawnMapContent = replay.ExtractSpawnMap();
