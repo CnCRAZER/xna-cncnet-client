@@ -8,6 +8,7 @@ using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -324,12 +325,19 @@ namespace DTAClient.DXGUI.Generic
 
         /// <summary>
         /// Gets the current Phobos version from Phobos.dll file version info.
-        /// TODO: Read from phobos.dll or a version file.
+        /// Returns null if Phobos.dll is not found.
         /// </summary>
         private string GetCurrentPhobosVersion()
         {
-            // TODO
-            return "0.3.0.1"; // Phobos.version.h
+            string phobosPath = SafePath.CombineFilePath(ProgramConstants.GamePath, "Phobos.dll");
+            if (!File.Exists(phobosPath))
+            {
+                Logger.Log("GameReplayWindow: Phobos.dll not found at " + phobosPath);
+                return null;
+            }
+
+            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(phobosPath);
+            return $"{versionInfo.FileMajorPart}.{versionInfo.FileMinorPart}.{versionInfo.FileBuildPart}.{versionInfo.FilePrivatePart}";
         }
 
         /// <summary>

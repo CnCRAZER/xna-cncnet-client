@@ -102,12 +102,16 @@ namespace DTAClient.Domain
                         return false;
                     }
 
-                    // Check version compatibility
-                    if (header.Version != 4) // TODO
+                    // Check version compatibility — version 4 is the minimum supported format.
+                    // Unknown newer versions are warned about but still parsed on a best-effort basis.
+                    if (header.Version < 4)
                     {
-                        Logger.Log("Unsupported replay version: " + header.Version);
+                        Logger.Log($"Unsupported replay version {header.Version} (minimum supported: 4).");
                         return false;
                     }
+
+                    if (header.Version > 4)
+                        Logger.Log($"Warning: Replay version {header.Version} is newer than the client knows about — parsing may be inaccurate.");
 
                     Version = header.Version;
                     MapName = Encoding.ASCII.GetString(header.MapName).TrimEnd('\0');

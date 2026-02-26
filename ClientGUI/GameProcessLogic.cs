@@ -25,7 +25,6 @@ namespace ClientGUI
         public static bool UseQres { get; set; }
         public static bool SingleCoreAffinity { get; set; }
 
-        //TODO fix all this properly
         /// <summary>
         /// Indicates whether the game is currently running in replay playback mode.
         /// This is set by GameReplayWindow when launching a replay.
@@ -189,7 +188,6 @@ namespace ClientGUI
             proc.Exited -= Process_Exited;
             proc.Dispose();
 
-            //TODO fix all this
             TimeSpan elapsed = DateTime.Now - gameStartTime;
             if (elapsed.TotalSeconds < 5)
             {
