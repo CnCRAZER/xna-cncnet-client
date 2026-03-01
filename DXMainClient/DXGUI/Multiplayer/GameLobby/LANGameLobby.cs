@@ -630,7 +630,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 int seconds = Conversions.IntFromString(data, 0);
                 if (seconds > 0)
                 {
-                    AddNotice(string.Format("Game will auto-start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
+                    AddNotice(string.Format("Game will auto start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
 #if WINFORMS
                     WindowManager.FlashWindow();
 #endif

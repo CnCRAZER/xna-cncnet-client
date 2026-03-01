@@ -964,8 +964,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         }
 
         /// <summary>
-        /// Starts the auto-start countdown. Notifies all players that the game will
-        /// auto-start in <see cref="AUTO_START_COUNTDOWN_SECONDS"/> seconds.
+        /// Starts the auto start countdown. Notifies all players that the game will
+        /// auto start in <see cref="AUTO_START_COUNTDOWN_SECONDS"/> seconds.
         /// </summary>
         private void StartAutoStartCountdown()
         {
@@ -977,7 +977,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         }
 
         /// <summary>
-        /// Handler for each tick of the auto-start countdown timer.
+        /// Handler for each tick of the auto start countdown timer.
         /// Checks if all players are ready and if the countdown has elapsed.
         /// </summary>
         private void AutoStartTimer_TimeElapsed(object sender, EventArgs e)
@@ -1026,12 +1026,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             CopyPlayerDataToUI();
             BroadcastPlayerOptions();
-            AddNotice("Auto-starting game...".L10N("Client:Main:AutoStartLaunching"));
+            AddNotice("Auto starting game...".L10N("Client:Main:AutoStartLaunching"));
             HostLaunchGame();
         }
 
         /// <summary>
-        /// Cancels the auto-start countdown if active.
+        /// Cancels the auto start countdown if active.
         /// </summary>
         protected void CancelAutoStartCountdown()
         {
@@ -1039,7 +1039,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             {
                 autoStartCountdownActive = false;
                 autoStartTimer.Pause();
-                AddNotice("Auto-start countdown cancelled.".L10N("Client:Main:AutoStartCancelled"));
+                AddNotice("Auto start countdown cancelled.".L10N("Client:Main:AutoStartCancelled"));
             }
         }
 
@@ -1061,12 +1061,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         }
 
         /// <summary>
-        /// Broadcasts the auto-start countdown notification to all players.
+        /// Broadcasts the auto start countdown notification to all players.
         /// Override in derived classes to broadcast to remote players.
         /// </summary>
         protected virtual void AutoStartCountdownNotification(int seconds)
         {
-            AddNotice(string.Format("Game will auto-start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
+            AddNotice(string.Format("Game will auto start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
         }
 
         protected virtual void InsufficientPlayersNotification()

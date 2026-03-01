@@ -1653,7 +1653,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             if (!IsHost)
             {
-                AddNotice(string.Format("Game will auto-start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
+                AddNotice(string.Format("Game will auto start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
 #if WINFORMS
                 WindowManager.FlashWindow();
 #endif
