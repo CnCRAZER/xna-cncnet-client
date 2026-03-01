@@ -926,7 +926,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 return;
             }
 
-            HostLaunchGame();
+            // All players are ready - start a short countdown before launching
+            StartAllReadyCountdown();
         }
 
         protected virtual void LockGameNotification() =>
@@ -972,6 +973,18 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             autoStartCountdownActive = true;
             autoStartSecondsRemaining = AUTO_START_COUNTDOWN_SECONDS;
             GetReadyNotification();
+            AutoStartCountdownNotification(autoStartSecondsRemaining);
+            autoStartTimer.Start();
+        }
+
+        /// <summary>
+        /// Starts a short countdown when all players are already ready and the host clicks launch.
+        /// </summary>
+        private void StartAllReadyCountdown()
+        {
+            autoStartCountdownActive = true;
+            autoStartSecondsRemaining = ALL_READY_COUNTDOWN_SECONDS;
+            AddNotice(string.Format("All players are ready! Game will start in {0} seconds.".L10N("Client:Main:AllReadyCountdown"), ALL_READY_COUNTDOWN_SECONDS));
             AutoStartCountdownNotification(autoStartSecondsRemaining);
             autoStartTimer.Start();
         }
