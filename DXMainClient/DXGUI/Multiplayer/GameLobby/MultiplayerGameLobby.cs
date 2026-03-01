@@ -79,6 +79,9 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 locked = value;
                 if (oldLocked != value)
                 {
+                    if (!locked)
+                        CancelAutoStartCountdown();
+
                     CopyPlayerDataToUI();
                     UpdateDiscordPresence();
                 }
@@ -1082,6 +1085,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         public virtual void Clear()
         {
+            CancelAutoStartCountdown();
+
             if (!IsHost)
                 AIPlayers.Clear();
 
