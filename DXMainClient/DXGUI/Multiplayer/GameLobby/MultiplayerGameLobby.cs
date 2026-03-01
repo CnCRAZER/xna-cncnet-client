@@ -1066,7 +1066,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         /// </summary>
         protected virtual void AutoStartCountdownNotification(int seconds)
         {
-            AddNotice(string.Format("Game will auto start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
+            AddNotice(string.Format("Game will auto start in {0} seconds.".L10N("Client:Main:AutoStartCountdown"), seconds));
         }
 
         protected virtual void InsufficientPlayersNotification()
