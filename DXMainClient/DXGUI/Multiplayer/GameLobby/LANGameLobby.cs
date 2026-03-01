@@ -41,6 +41,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private const string LAUNCH_GAME_COMMAND = "LAUNCH";
         private const string FILE_HASH_COMMAND = "FHASH";
         private const string DICE_ROLL_COMMAND = "DR";
+        private const string AUTO_START_COMMAND = "AUTOSTART";
         public const string PING = "PING";
 
         public LANGameLobby(WindowManager windowManager, string iniName,
@@ -71,6 +72,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 new ClientStringCommandHandler(LAUNCH_GAME_COMMAND, HandleGameLaunchCommand),
                 new ClientStringCommandHandler(GAME_OPTIONS_COMMAND, HandleGameOptionsMessage),
                 new ClientStringCommandHandler(DICE_ROLL_COMMAND, Client_HandleDiceRoll),
+                new ClientStringCommandHandler(AUTO_START_COMMAND, HandleAutoStartCommand),
                 new ClientNoParamCommandHandler(PING, HandlePing),
             };
 
@@ -613,6 +615,29 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 BroadcastMessage(GET_READY_COMMAND);
         }
 
+        protected override void AutoStartCountdownNotification(int seconds)
+        {
+            base.AutoStartCountdownNotification(seconds);
+
+            if (IsHost)
+                BroadcastMessage(AUTO_START_COMMAND + " " + seconds);
+        }
+
+        private void HandleAutoStartCommand(string data)
+        {
+            if (!IsHost)
+            {
+                int seconds = Conversions.IntFromString(data, 0);
+                if (seconds > 0)
+                {
+                    AddNotice(string.Format("Game will auto-start in {0} seconds. Get ready!".L10N("Client:Main:AutoStartCountdown"), seconds));
+#if WINFORMS
+                    WindowManager.FlashWindow();
+#endif
+                }
+            }
+        }
+
         protected override void ClearPingIndicators()
         {
             // TODO Implement pings for LAN lobbies
@@ -733,6 +758,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                         CleanUpPlayer(lpInfo);
                         Players.RemoveAt(i);
                         AddNotice(string.Format("{0} - connection timed out".L10N("Client:Main:PlayerTimeout"), lpInfo.Name));
+                        CancelAutoStartCountdown();
                         CopyPlayerDataToUI();
                         BroadcastPlayerOptions();
                         BroadcastPlayerExtraOptions();
@@ -996,6 +1022,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             AddNotice(string.Format("{0} has left the game.".L10N("Client:Main:PlayerLeftGame"), pInfo.Name));
             Players.Remove(pInfo);
+            CancelAutoStartCountdown();
             ClearReadyStatuses();
             CopyPlayerDataToUI();
             BroadcastPlayerOptions();
