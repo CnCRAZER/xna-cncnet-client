@@ -8,6 +8,16 @@ Breaking changes are not covered here; see [Migration.md](Migration.md) instead.
 
 - Custom mission support and game mode updates offer several new features. Details will be provided later.
 
+- Color selection can now be restricted identically to side selection. Colors can be disallowed via co-op map settings (`DisallowedPlayerColors`), game mode settings (`DisallowedPlayerColors`, `DisallowedHumanPlayerColors`, `DisallowedComputerPlayerColors`), or game option checkboxes (`DisallowedColorIndex` / `DisallowedColorIndices`). Example in `INI\MPMaps.ini`:
+
+```ini
+[Standard]                              ; any game mode section
+; (...)
+DisallowedPlayerColors=0,1             ; disallows colors for all players (0-based color indices)
+DisallowedHumanPlayerColors=2,3        ; disallows colors for human players only
+DisallowedComputerPlayerColors=4,5     ; disallows colors for computer players only
+```
+
 - The following controls are now available to support broadcasting customized game options to the CnCNet lobby and displaying them in the game list and filters. `GameSessionCheckBox`, `GameLobbyCheckBox`, `GameSessionDropDown`, `GameLobbyDropDown`. See [INISystem.md](INISystem.md).
 
 - The game icon in the game lobby list can be turned off. See `ShowGameIconInGameList` in [INISystem.md](INISystem.md).

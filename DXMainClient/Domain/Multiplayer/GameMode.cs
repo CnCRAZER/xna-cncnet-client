@@ -54,6 +54,21 @@ namespace DTAClient.Domain.Multiplayer
         /// </summary>
         public List<int> DisallowedComputerPlayerSides = new List<int>();
 
+        /// <summary>
+        /// List of color indices players cannot select in this game mode.
+        /// </summary>
+        public List<int> DisallowedPlayerColors = new List<int>();
+
+        /// <summary>
+        /// List of color indices human players cannot select in this game mode.
+        /// </summary>
+        public List<int> DisallowedHumanPlayerColors = new List<int>();
+
+        /// <summary>
+        /// List of color indices computer players cannot select in this game mode.
+        /// </summary>
+        public List<int> DisallowedComputerPlayerColors = new List<int>();
+
         /// </summary>
         /// Override for minimum amount of players needed to play any map in this game mode.
         /// Priority sequences: GameMode.MinPlayersOverride, Map.MinPlayers, GameMode.MinPlayers.
@@ -96,6 +111,10 @@ namespace DTAClient.Domain.Multiplayer
             DisallowedPlayerSides = section.GetListValue("DisallowedPlayerSides", ',', int.Parse);
             DisallowedHumanPlayerSides = section.GetListValue("DisallowedHumanPlayerSides", ',', int.Parse);
             DisallowedComputerPlayerSides = section.GetListValue("DisallowedComputerPlayerSides", ',', int.Parse);
+
+            DisallowedPlayerColors = section.GetListValue("DisallowedPlayerColors", ',', int.Parse);
+            DisallowedHumanPlayerColors = section.GetListValue("DisallowedHumanPlayerColors", ',', int.Parse);
+            DisallowedComputerPlayerColors = section.GetListValue("DisallowedComputerPlayerColors", ',', int.Parse);
 
             ParseForcedOptions(forcedOptionsIni);
 

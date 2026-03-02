@@ -611,6 +611,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected virtual void OnGameOptionChanged()
         {
             CheckDisallowedSides();
+            CheckDisallowedColors();
 
             btnLaunchGame.SetRank(GetRank());
         }
@@ -1177,6 +1178,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             }
 
             CheckDisallowedSides();
+            CheckDisallowedColors();
         }
 
         private XNALabel GeneratePlayerOptionCaption(string name, string text, int x, int y)
@@ -1467,6 +1469,97 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         }
 
         /// <summary>
+        /// Applies disallowed color indexes to the color option drop-downs
+        /// and player options for human or computer players.
+        /// </summary>
+        protected void CheckDisallowedColorsForGroup(bool forHumanPlayers)
+        {
+            var disallowedColorArray = GetDisallowedColorsForGroup(forHumanPlayers);
+            var playerInfos = forHumanPlayers ? Players : AIPlayers;
+            int defaultColor = 0; // Default to Random
+            int allowedColorCount = disallowedColorArray.Count(b => b == false);
+
+            if (allowedColorCount == 1)
+            {
+                // Disallow Random
+
+                for (int i = 0; i < disallowedColorArray.Length; i++)
+                {
+                    if (!disallowedColorArray[i])
+                    {
+                        defaultColor = i + 1; // +1 because index 0 is Random
+                        break;
+                    }
+                }
+
+                foreach (PlayerInfo pInfo in playerInfos)
+                {
+                    var dd = ddPlayerColors[pInfo.Index];
+                    dd.Items[0].Selectable = false;
+                }
+            }
+            else
+            {
+                foreach (PlayerInfo pInfo in playerInfos)
+                {
+                    var dd = ddPlayerColors[pInfo.Index];
+                    dd.Items[0].Selectable = true;
+                }
+            }
+
+            // Go over the color array and either disable or enable the color
+            // dropdown options depending on whether the color is available
+            for (int i = 0; i < disallowedColorArray.Length; i++)
+            {
+                bool disabled = disallowedColorArray[i];
+
+                if (disabled)
+                {
+                    // Change the colors of players that use the disabled
+                    // color to the default color
+                    foreach (PlayerInfo pInfo in playerInfos)
+                    {
+                        var dd = ddPlayerColors[pInfo.Index];
+                        dd.Items[i + 1].Selectable = false;
+                        dd.SetItemColorEnabled(i + 1, false);
+
+                        if (pInfo.ColorId == i + 1)
+                            pInfo.ColorId = defaultColor;
+                    }
+                }
+                else
+                {
+                    foreach (PlayerInfo pInfo in playerInfos)
+                    {
+                        var dd = ddPlayerColors[pInfo.Index];
+                        dd.Items[i + 1].Selectable = true;
+                        dd.SetItemColorEnabled(i + 1, true);
+                    }
+                }
+            }
+
+            // If only 1 color is allowed, change all players' colors to that
+            if (allowedColorCount == 1)
+            {
+                foreach (PlayerInfo pInfo in playerInfos)
+                {
+                    if (pInfo.ColorId == 0)
+                        pInfo.ColorId = defaultColor;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies disallowed color indexes to the color option drop-downs
+        /// and player options.
+        /// </summary>
+        protected void CheckDisallowedColors()
+        {
+            CheckDisallowedColorsForGroup(forHumanPlayers: false);
+            CheckDisallowedColorsForGroup(forHumanPlayers: true);
+        }
+
+        /// <summary>
         /// Gets a list of side indexes that are disallowed for human or computer players.
         /// </summary>
         /// <returns>A list of disallowed side indexes.</returns>
@@ -1512,6 +1605,51 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         }
 
         /// <summary>
+        /// Gets a list of color indexes that are disallowed for human or computer players.
+        /// </summary>
+        /// <returns>A list of disallowed color indexes.</returns>
+        protected bool[] GetDisallowedColorsForGroup(bool forHumanPlayers)
+        {
+            var returnValue = GetDisallowedColors();
+            var colors = forHumanPlayers ? GameMode?.DisallowedHumanPlayerColors : GameMode?.DisallowedComputerPlayerColors;
+            if (colors != null)
+            {
+                foreach (int i in colors)
+                    returnValue[i] = true;
+            }
+
+            return returnValue;
+        }
+
+        /// <summary>
+        /// Gets a list of color indexes that are disallowed.
+        /// </summary>
+        /// <returns>A list of disallowed color indexes.</returns>
+        protected bool[] GetDisallowedColors()
+        {
+            var returnValue = new bool[MPColors.Count];
+
+            if (GameModeMap != null && GameModeMap.CoopInfo != null)
+            {
+                // Co-Op map disallowed color logic
+
+                foreach (int disallowedColorIndex in GameModeMap.CoopInfo.DisallowedPlayerColors)
+                    returnValue[disallowedColorIndex] = true;
+            }
+
+            if (GameMode != null)
+            {
+                foreach (int disallowedColorIndex in GameMode.DisallowedPlayerColors)
+                    returnValue[disallowedColorIndex] = true;
+            }
+
+            foreach (var checkBox in CheckBoxes)
+                checkBox.ApplyDisallowedColorIndex(returnValue);
+
+            return returnValue;
+        }
+
+        /// <summary>
         /// Randomizes options of both human and AI players
         /// and returns the options as an array of PlayerHouseInfos.
         /// </summary>
@@ -1538,6 +1676,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (GameModeMap.CoopInfo != null)
             {
                 foreach (int colorIndex in GameModeMap.CoopInfo.DisallowedPlayerColors)
+                    freeColors.Remove(colorIndex);
+            }
+
+            if (GameMode != null)
+            {
+                foreach (int colorIndex in GameMode.DisallowedPlayerColors)
                     freeColors.Remove(colorIndex);
             }
 
@@ -1580,21 +1724,24 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 PlayerInfo pInfo;
                 PlayerHouseInfo pHouseInfo = houseInfos[i];
                 bool[] disallowedSides;
+                bool[] disallowedColors;
 
                 if (i < Players.Count)
                 {
                     pInfo = Players[i];
                     disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers: true);
+                    disallowedColors = GetDisallowedColorsForGroup(forHumanPlayers: true);
                 }
                 else
                 {
                     pInfo = AIPlayers[i - Players.Count];
                     disallowedSides = GetDisallowedSidesForGroup(forHumanPlayers: false);
+                    disallowedColors = GetDisallowedColorsForGroup(forHumanPlayers: false);
                 }
 
                 pHouseInfo.RandomizeSide(pInfo, SideCount, pseudoRandom, disallowedSides, RandomSelectors, RandomSelectorCount);
 
-                pHouseInfo.RandomizeColor(pInfo, freeColors, MPColors, pseudoRandom);
+                pHouseInfo.RandomizeColor(pInfo, freeColors, MPColors, pseudoRandom, disallowedColors);
 
                 bool overrideGameRandomLocations = teamStartMappings.Any()
                     || GameModeMap.AllowedStartingLocations.Max() > GameModeMap.MaxPlayers; // non-sequential AllowedStartingLocations
@@ -2373,6 +2520,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             UpdateMapPreviewBoxEnabledStatus();
 
             CheckDisallowedSides();
+            CheckDisallowedColors();
 
             PlayerUpdatingInProgress = false;
         }

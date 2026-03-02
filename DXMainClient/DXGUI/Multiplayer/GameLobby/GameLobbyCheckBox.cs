@@ -40,6 +40,11 @@ public class GameLobbyCheckBox : GameSessionCheckBox
     /// </summary>
     public List<int> DisallowedSideIndices = new();
 
+    /// <summary>
+    /// The color indices that this check box disallows when checked.
+    /// </summary>
+    public List<int> DisallowedColorIndices = new();
+
     public override void Initialize()
     {
         // Find the game lobby that this control belongs to and register ourselves as a game option.
@@ -84,6 +89,14 @@ public class GameLobbyCheckBox : GameSessionCheckBox
                     .ToList();
                 DisallowedSideIndices.AddRange(sides.Where(s => !DisallowedSideIndices.Contains(s)));
                 return;
+            case "DisallowedColorIndex":
+            case "DisallowedColorIndices":
+                List<int> colors = value.SplitWithCleanup()
+                    .Select(s => Conversions.IntFromString(s, -1))
+                    .Distinct()
+                    .ToList();
+                DisallowedColorIndices.AddRange(colors.Where(c => !DisallowedColorIndices.Contains(c)));
+                return;
         }
 
         base.ParseControlINIAttribute(iniFile, key, value);
@@ -105,6 +118,26 @@ public class GameLobbyCheckBox : GameSessionCheckBox
             {
                 int sideNotAllowed = DisallowedSideIndices[i];
                 disallowedArray[sideNotAllowed] = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies the check-box's disallowed color index to a bool
+    /// array that determines which colors are disabled.
+    /// </summary>
+    /// <param name="disallowedArray">An array that determines which colors are disabled.</param>
+    public void ApplyDisallowedColorIndex(bool[] disallowedArray)
+    {
+        if (DisallowedColorIndices == null || DisallowedColorIndices.Count == 0)
+            return;
+
+        if (Checked != reversed)
+        {
+            for (int i = 0; i < DisallowedColorIndices.Count; i++)
+            {
+                int colorNotAllowed = DisallowedColorIndices[i];
+                disallowedArray[colorNotAllowed] = true;
             }
         }
     }

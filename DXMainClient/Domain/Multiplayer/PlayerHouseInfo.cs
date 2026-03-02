@@ -81,18 +81,23 @@ namespace DTAClient.Domain.Multiplayer
         /// <param name="freeColors">The list of available (un-used) colors.</param>
         /// <param name="mpColors">The list of all multiplayer colors.</param>
         /// <param name="random">Random number generator.</param>
+        /// <param name="disallowedColorArray">A bool array that determines which color indexes are disallowed by game options.</param>
         public void RandomizeColor(PlayerInfo pInfo, List<int> freeColors, 
-            List<MultiplayerColor> mpColors, Random random)
+            List<MultiplayerColor> mpColors, Random random, bool[] disallowedColorArray)
         {
             if (pInfo.ColorId == 0)
             {
                 // The player has selected Random for their color
 
-                int randomizedColorIndex = random.Next(0, freeColors.Count);
-                int actualColorId = freeColors[randomizedColorIndex];
+                var availableColors = disallowedColorArray != null
+                    ? freeColors.Where(c => !disallowedColorArray[c]).ToList()
+                    : freeColors;
+
+                int randomizedColorIndex = random.Next(0, availableColors.Count);
+                int actualColorId = availableColors[randomizedColorIndex];
 
                 ColorIndex = mpColors[actualColorId].GameColorIndex;
-                freeColors.RemoveAt(randomizedColorIndex);
+                freeColors.Remove(actualColorId);
             }
             else
             {

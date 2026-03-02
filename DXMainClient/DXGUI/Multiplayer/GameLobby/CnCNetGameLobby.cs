@@ -979,6 +979,11 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (0 < side && side < SideCount && disallowedSides[side])
                 return;
 
+            var disallowedColors = GetDisallowedColors();
+
+            if (color > 0 && color <= MPColors.Count && disallowedColors[color - 1])
+                return;
+
             if (GameModeMap?.CoopInfo != null)
             {
                 if (GameModeMap.CoopInfo.DisallowedPlayerSides.Contains(side - 1) || side == SideCount + RandomSelectorCount)
