@@ -83,23 +83,24 @@ public class GameLobbyCheckBox : GameSessionCheckBox
                 break;  // let base method handle it too as we're not replacing it fully
             case "DisallowedSideIndex":
             case "DisallowedSideIndices":
-                List<int> sides = value.SplitWithCleanup()
-                    .Select(s => Conversions.IntFromString(s, -1))
-                    .Distinct()
-                    .ToList();
-                DisallowedSideIndices.AddRange(sides.Where(s => !DisallowedSideIndices.Contains(s)));
+                ParseDisallowedIndices(value, DisallowedSideIndices);
                 return;
             case "DisallowedColorIndex":
             case "DisallowedColorIndices":
-                List<int> colors = value.SplitWithCleanup()
-                    .Select(s => Conversions.IntFromString(s, -1))
-                    .Distinct()
-                    .ToList();
-                DisallowedColorIndices.AddRange(colors.Where(c => !DisallowedColorIndices.Contains(c)));
+                ParseDisallowedIndices(value, DisallowedColorIndices);
                 return;
         }
 
         base.ParseControlINIAttribute(iniFile, key, value);
+    }
+
+    private static void ParseDisallowedIndices(string value, List<int> target)
+    {
+        List<int> parsed = value.SplitWithCleanup()
+            .Select(s => Conversions.IntFromString(s, -1))
+            .Distinct()
+            .ToList();
+        target.AddRange(parsed.Where(i => !target.Contains(i)));
     }
 
     /// <summary>
@@ -108,19 +109,7 @@ public class GameLobbyCheckBox : GameSessionCheckBox
     /// </summary>
     /// <param name="disallowedArray">An array that determines which sides are disabled.</param>
     public void ApplyDisallowedSideIndex(bool[] disallowedArray)
-    {
-        if (DisallowedSideIndices == null || DisallowedSideIndices.Count == 0)
-            return;
-
-        if (Checked != reversed)
-        {
-            for (int i = 0; i < DisallowedSideIndices.Count; i++)
-            {
-                int sideNotAllowed = DisallowedSideIndices[i];
-                disallowedArray[sideNotAllowed] = true;
-            }
-        }
-    }
+        => ApplyDisallowedIndices(DisallowedSideIndices, disallowedArray);
 
     /// <summary>
     /// Applies the check-box's disallowed color index to a bool
@@ -128,17 +117,17 @@ public class GameLobbyCheckBox : GameSessionCheckBox
     /// </summary>
     /// <param name="disallowedArray">An array that determines which colors are disabled.</param>
     public void ApplyDisallowedColorIndex(bool[] disallowedArray)
+        => ApplyDisallowedIndices(DisallowedColorIndices, disallowedArray);
+
+    private void ApplyDisallowedIndices(List<int> indices, bool[] disallowedArray)
     {
-        if (DisallowedColorIndices == null || DisallowedColorIndices.Count == 0)
+        if (indices == null || indices.Count == 0)
             return;
 
         if (Checked != reversed)
         {
-            for (int i = 0; i < DisallowedColorIndices.Count; i++)
-            {
-                int colorNotAllowed = DisallowedColorIndices[i];
-                disallowedArray[colorNotAllowed] = true;
-            }
+            foreach (int index in indices)
+                disallowedArray[index] = true;
         }
     }
 
