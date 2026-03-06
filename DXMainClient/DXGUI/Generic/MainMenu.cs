@@ -55,6 +55,7 @@ namespace DTAClient.DXGUI.Generic
             MapLoader mapLoader,
             CampaignTagSelector campaignTagSelector,
             GameLoadingWindow gameLoadingWindow,
+            GameReplayWindow gameReplayWindow,
             StatisticsWindow statisticsWindow,
             UpdateQueryWindow updateQueryWindow,
             ManualUpdateQueryWindow manualUpdateQueryWindow,
@@ -78,6 +79,7 @@ namespace DTAClient.DXGUI.Generic
             this.mapLoader = mapLoader;
             this.campaignTagSelector = campaignTagSelector;
             this.gameLoadingWindow = gameLoadingWindow;
+            this.gameReplayWindow = gameReplayWindow;
             this.statisticsWindow = statisticsWindow;
             this.updateQueryWindow = updateQueryWindow;
             this.manualUpdateQueryWindow = manualUpdateQueryWindow;
@@ -114,6 +116,7 @@ namespace DTAClient.DXGUI.Generic
         private readonly MapLoader mapLoader;
         private readonly CampaignTagSelector campaignTagSelector;
         private readonly GameLoadingWindow gameLoadingWindow;
+        private readonly GameReplayWindow gameReplayWindow;
         private readonly StatisticsWindow statisticsWindow;
         private readonly UpdateQueryWindow updateQueryWindow;
         private readonly ManualUpdateQueryWindow manualUpdateQueryWindow;
@@ -153,6 +156,7 @@ namespace DTAClient.DXGUI.Generic
         // Main Menu Buttons
         private XNAClientButton btnNewCampaign;
         private XNAClientButton btnLoadGame;
+        private XNAClientButton btnLoadReplay;
         private XNAClientButton btnSkirmish;
         private XNAClientButton btnCnCNet;
         private XNAClientButton btnLan;
@@ -189,6 +193,13 @@ namespace DTAClient.DXGUI.Generic
             btnLoadGame.HoverTexture = AssetLoader.LoadTexture("MainMenu/loadmission_c.png");
             btnLoadGame.HoverSoundEffect = new EnhancedSoundEffect("MainMenu/button.wav");
             btnLoadGame.LeftClick += BtnLoadGame_LeftClick;
+
+            btnLoadReplay = new XNAClientButton(WindowManager);
+            btnLoadReplay.Name = nameof(btnLoadReplay);
+            btnLoadReplay.IdleTexture = AssetLoader.LoadTexture("MainMenu/loadmission.png");
+            btnLoadReplay.HoverTexture = AssetLoader.LoadTexture("MainMenu/loadmission_c.png");
+            btnLoadReplay.HoverSoundEffect = new EnhancedSoundEffect("MainMenu/button.wav");
+            btnLoadReplay.LeftClick += btnLoadReplay_LeftClick;
 
             btnSkirmish = new XNAClientButton(WindowManager);
             btnSkirmish.Name = nameof(btnSkirmish);
@@ -273,6 +284,7 @@ namespace DTAClient.DXGUI.Generic
 
             AddChild(btnNewCampaign);
             AddChild(btnLoadGame);
+            AddChild(btnLoadReplay);
             AddChild(btnSkirmish);
             AddChild(btnCnCNet);
             AddChild(btnLan);
@@ -351,6 +363,7 @@ namespace DTAClient.DXGUI.Generic
                 btnStatistics.HotKey = Keys.T;
                 btnCredits.HotKey = Keys.R;
                 btnExtras.HotKey = Keys.X;
+                btnLoadReplay.HotKey = Keys.Z;
             }
             else
             {
@@ -364,6 +377,7 @@ namespace DTAClient.DXGUI.Generic
                 btnStatistics.HotKey = Keys.None;
                 btnCredits.HotKey = Keys.None;
                 btnExtras.HotKey = Keys.None;
+                btnLoadReplay.HotKey = Keys.None;
             }
         }
 
@@ -592,6 +606,7 @@ namespace DTAClient.DXGUI.Generic
                 lanLobby,
                 campaignTagSelector,
                 gameLoadingWindow,
+                gameReplayWindow,
                 updateQueryWindow,
                 manualUpdateQueryWindow,
                 updateWindow,
@@ -620,6 +635,7 @@ namespace DTAClient.DXGUI.Generic
 
                 campaignTagSelector,
                 gameLoadingWindow,
+                gameReplayWindow,
                 statisticsWindow,
                 updateQueryWindow,
                 manualUpdateQueryWindow,
@@ -924,6 +940,8 @@ namespace DTAClient.DXGUI.Generic
 
         private void BtnLoadGame_LeftClick(object sender, EventArgs e)
             => gameLoadingWindow.Enable();
+        private void btnLoadReplay_LeftClick(object sender, EventArgs e)
+            => gameReplayWindow.Enable();
 
         private void BtnLan_LeftClick(object sender, EventArgs e)
         {
@@ -976,6 +994,8 @@ namespace DTAClient.DXGUI.Generic
         {
             gameLoadingWindow.ListSaves();
             gameLoadingWindow.Disable();
+            gameReplayWindow.ListReplays();
+            gameReplayWindow.Disable();
             gameInProgressWindow.Disable();
 
             // If music is disabled on menus, check if the main menu is the top-most
