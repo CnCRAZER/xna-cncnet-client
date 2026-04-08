@@ -109,6 +109,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 };
             }
 
+            int errorLabelY = chkStayLoggedIn?.Bottom + 7 ?? tbPlayerPassword.ClientRectangle.Y + 35;
+
             lblError = new XNALabel(WindowManager)
             {
                 Name = "lblError",
@@ -116,7 +118,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 TextColor = Color.Red,
                 Text = string.Empty
             };
-            lblError.ClientRectangle = new Rectangle(12, tbPlayerPassword.ClientRectangle.Y + 52, lblError.ClientRectangle.Width, lblError.ClientRectangle.Height);
+            lblError.ClientRectangle = new Rectangle(12, errorLabelY, lblError.ClientRectangle.Width, lblError.ClientRectangle.Height);
 
             AddChild(tbPlayerEmail);
             AddChild(tbPlayerPassword);
@@ -186,6 +188,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             string email = tbPlayerEmail.Text;
             string password = tbPlayerPassword.Password;
 
+            // The checkbox only exists in the CnCNet API flow; default to true if unavailable.
             bool stayLoggedIn = chkStayLoggedIn?.Checked ?? true;
 
             _ = Task.Run(async () =>

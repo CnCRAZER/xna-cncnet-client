@@ -44,6 +44,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         public string? Nickname { get; set; }
         public string? AuthToken { get; private set; }
         public bool IsAuthed { get; private set; }
+        public bool StayLoggedIn { get; private set; }
 
         public List<AuthPlayer> Accounts { get; private set; } = new List<AuthPlayer>();
         public string? ErrorMessage { get; private set; }
@@ -83,11 +84,13 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                 AuthToken = ReadAuthToken();
 
                 IsAuthed = await VerifyTokenAsync();
+                StayLoggedIn = IsAuthed;
 
                 Initialized?.Invoke(IsAuthed);
             }
             catch
             {
+                StayLoggedIn = false;
                 Initialized?.Invoke(false);
                 Logger.Log("Failed to get access token for QM account");
             }
@@ -161,17 +164,21 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
 
                 bool success = await GetAccountsAsync();
                 if (!success)
+                {
+                    IsAuthed = false;
                     return false;
+                }
+
+                StayLoggedIn = stayLoggedIn;
+                IsAuthed = true;
 
                 if (stayLoggedIn)
                 {
                     WriteAuthToken(AuthToken ?? string.Empty);
-                    IsAuthed = true;
                 }
                 else
                 {
                     ClearAuthToken();
-                    IsAuthed = false;
                 }
 
                 return true;
@@ -192,6 +199,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
             catch { }
 
             IsAuthed = false;
+            StayLoggedIn = false;
             AuthToken = string.Empty;
             Accounts.Clear();
         }
