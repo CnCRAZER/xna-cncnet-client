@@ -1,4 +1,5 @@
-﻿﻿using ClientGUI;
+﻿using ClientCore.Extensions;
+using ClientGUI;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
@@ -17,9 +18,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         public event EventHandler? Cancel;
         public event EventHandler? LoginSuccess;
 
-        private XNATextBox tbPlayerEmail;
-        private XNAPasswordBox tbPlayerPassword;
-        private XNALabel lblError;
+        private XNATextBox tbPlayerEmail = null!;
+        private XNAPasswordBox tbPlayerPassword = null!;
+        private XNALabel lblError = null!;
 
         public CnCNetAccountLoginWindow(WindowManager windowManager) : base(windowManager) { }
 
@@ -33,7 +34,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblWindowTitle",
                 FontIndex = 1,
-                Text = "LOGIN TO CNCNET"
+                Text = "LOGIN TO CNCNET".L10N("Client:CnCNet:LoginToCnCNetTitle")
             };
             AddChild(lblLoginWindowTitle);
             lblLoginWindowTitle.CenterOnParent();
@@ -43,7 +44,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnLogin",
                 ClientRectangle = new Rectangle(12, ClientRectangle.Bottom - 35, 92, 23),
-                Text = "Login"
+                Text = "Login".L10N("Client:CnCNet:LoginButton")
             };
             btnLogin.LeftClick += BtnLogin_LeftClick;
 
@@ -51,7 +52,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnRegister",
                 ClientRectangle = new Rectangle((Width - 92) / 2, ClientRectangle.Bottom - 35, 92, 23),
-                Text = "Register"
+                Text = "Register".L10N("Client:CnCNet:RegisterButton")
             };
             btnRegister.LeftClick += BtnRegister_LeftClick;
 
@@ -59,7 +60,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnCancel",
                 ClientRectangle = new Rectangle(Width - 104, btnLogin.Y, 92, 23),
-                Text = "Cancel"
+                Text = "Cancel".L10N("Client:Main:ButtonCancel")
             };
             btnCancel.LeftClick += BtnCancel_LeftClick;
 
@@ -74,7 +75,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblPlayerEmail",
                 FontIndex = 1,
-                Text = "Email:"
+                Text = "Email:".L10N("Client:CnCNet:EmailLabel")
             };
             lblPlayerEmail.ClientRectangle = new Rectangle(12, tbPlayerEmail.ClientRectangle.Y + 1, lblPlayerEmail.ClientRectangle.Width, lblPlayerEmail.ClientRectangle.Height);
 
@@ -82,7 +83,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblPlayerPassword",
                 FontIndex = 1,
-                Text = "Password:"
+                Text = "Password:".L10N("Client:CnCNet:PasswordLabel")
             };
             lblPlayerPassword.ClientRectangle = new Rectangle(12, tbPlayerEmail.ClientRectangle.Y + 35, lblPlayerPassword.ClientRectangle.Width, lblPlayerPassword.ClientRectangle.Height);
 
@@ -151,7 +152,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             if (string.IsNullOrEmpty(tbPlayerEmail.Text) || string.IsNullOrEmpty(tbPlayerPassword.Password))
             {
-                lblError.Text = "Email and password are required";
+                lblError.Text = "Email and password are required.".L10N("Client:CnCNet:LoginFieldsRequired");
                 return;
             }
 
@@ -163,7 +164,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             }
             else
             {
-                lblError.Text = CnCNetAPI.Instance.ErrorMessage ?? "Login failed";
+                lblError.Text = CnCNetAPI.Instance.ErrorMessage ?? "Login failed.".L10N("Client:CnCNet:LoginFailed");
             }
         }
     }

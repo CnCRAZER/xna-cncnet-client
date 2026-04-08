@@ -18,13 +18,13 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         public event EventHandler? Logout;
         public event EventHandler? Connect;
 
-        private XNADropDown ddAccounts;
-        private XNATextBox tbNewNickname;
-        private XNAClientButton btnCreate;
-        private XNALabel lblTitle;
-        private XNALabel lblAccounts;
-        private XNALabel lblError;
-        private XNAClientButton btnConnect;
+        private XNADropDown ddAccounts = null!;
+        private XNATextBox tbNewNickname = null!;
+        private XNAClientButton btnCreate = null!;
+        private XNALabel lblTitle = null!;
+        private XNALabel lblAccounts = null!;
+        private XNALabel lblError = null!;
+        private XNAClientButton btnConnect = null!;
 
         public CnCNetAccountManagerWindow(WindowManager windowManager) : base(windowManager) { }
 
@@ -38,7 +38,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblTitle",
                 FontIndex = 1,
-                Text = "YOUR NICKNAMES"
+                Text = "YOUR NICKNAMES".L10N("Client:CnCNet:YourNicknamesTitle")
             };
             lblTitle.ClientRectangle = new Rectangle(12, 12, lblTitle.Width, lblTitle.Height);
             AddChild(lblTitle);
@@ -47,7 +47,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnConnect",
                 ClientRectangle = new Rectangle(12, ClientRectangle.Bottom - 35, 92, 23),
-                Text = "Connect"
+                Text = "Connect".L10N("Client:CnCNet:ConnectButton")
             };
             btnConnect.LeftClick += BtnConnect_LeftClick;
 
@@ -55,7 +55,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnLogout",
                 ClientRectangle = new Rectangle(Width - 104, btnConnect.Y, 92, 23),
-                Text = "Logout"
+                Text = "Logout".L10N("Client:CnCNet:LogoutButton")
             };
             btnLogout.LeftClick += BtnLogout_LeftClick;
 
@@ -70,7 +70,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblAccounts",
                 FontIndex = 1,
-                Text = "Nicknames:"
+                Text = "Nicknames:".L10N("Client:CnCNet:NicknamesLabel")
             };
             lblAccounts.ClientRectangle = new Rectangle(12, ddAccounts.ClientRectangle.Y + 1, lblAccounts.ClientRectangle.Width, lblAccounts.ClientRectangle.Height);
 
@@ -85,7 +85,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnCreate",
                 ClientRectangle = new Rectangle(12, ClientRectangle.Bottom - 35, 92, 23),
-                Text = "Create"
+                Text = "Create".L10N("Client:CnCNet:CreateButton")
             };
             btnCreate.LeftClick += BtnCreate_LeftClick;
 
@@ -188,7 +188,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             foreach (AuthPlayer player in CnCNetAPI.Instance.Accounts)
             {
                 if (player.Ladder == null ||
-                    !string.Equals(player.Ladder.Abbreviation, ladderAbbrev, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(player.Ladder.Abbreviation, ladderAbbrev, StringComparison.OrdinalIgnoreCase) ||
+                    player.Username == null)
                 {
                     continue;
                 }
@@ -221,11 +222,11 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             btnCreate.Enabled = !selectMode;
 
             lblTitle.Text = selectMode
-                ? "YOUR NICKNAMES"
+                ? "YOUR NICKNAMES".L10N("Client:CnCNet:YourNicknamesTitle")
                 : "CREATE A NICKNAME".L10N("Client:CnCNet:CreateNicknameTitle");
 
             lblAccounts.Text = selectMode
-                ? "Nicknames:"
+                ? "Nicknames:".L10N("Client:CnCNet:NicknamesLabel")
                 : "Nickname:".L10N("Client:CnCNet:NicknameLabel");
         }
     }

@@ -1,4 +1,5 @@
-﻿﻿using ClientGUI;
+﻿using ClientCore.Extensions;
+using ClientGUI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Rampastring.XNAUI;
@@ -27,7 +28,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblWindowTitle",
                 FontIndex = 1,
-                Text = "CONNECT TO CNCNET"
+                Text = "CONNECT TO CNCNET".L10N("Client:CnCNet:ConnectToCnCNetTitle")
             };
             AddChild(lblWindowTitle);
             lblWindowTitle.CenterOnParent();
@@ -37,7 +38,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "lblWindowDescription",
                 FontIndex = 1,
-                Text = "Choose how you would like to connect to CnCNet"
+                Text = "Choose how you would like to connect to CnCNet".L10N("Client:CnCNet:ConnectToCnCNetDescription")
             };
             AddChild(lblWindowDescription);
             lblWindowDescription.CenterOnParent();
@@ -47,7 +48,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnConnectAsGuest",
                 ClientRectangle = new Rectangle(12, ClientRectangle.Bottom - 35, 133, 23),
-                Text = "As a Guest"
+                Text = "As a Guest".L10N("Client:CnCNet:ConnectAsGuest")
             };
             btnConnectAsGuest.LeftClick += BtnConnectAsGuest_LeftClick;
 
@@ -55,7 +56,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 Name = "btnLoginWithAccount",
                 ClientRectangle = new Rectangle(Width - 140, btnConnectAsGuest.Y, 133, 23),
-                Text = "With my Account"
+                Text = "With my Account".L10N("Client:CnCNet:ConnectWithAccount")
             };
             btnLoginWithAccount.LeftClick += BtnLoginWithAccount_LeftClick;
 

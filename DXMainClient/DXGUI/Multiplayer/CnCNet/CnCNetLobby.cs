@@ -18,6 +18,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using ClientCore.Enums;
 using ClientCore.Extensions;
 using SixLabors.ImageSharp;
@@ -115,9 +116,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private CnCNetLoginWindow loginWindow;
 
-        private CnCNetAccountLoginPrompt accountLoginPrompt;
-        private CnCNetAccountLoginWindow accountLoginWindow;
-        private CnCNetAccountManagerWindow accountManagerWindow;
+        private CnCNetAccountLoginPrompt? accountLoginPrompt;
+        private CnCNetAccountLoginWindow? accountLoginWindow;
+        private CnCNetAccountManagerWindow? accountManagerWindow;
 
         private TopBar topBar;
 
@@ -638,35 +639,38 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             loginWindowPanel.AddChild(loginWindow);
             loginWindow.Disable();
 
-            accountLoginPrompt = new CnCNetAccountLoginPrompt(WindowManager);
-            accountLoginPrompt.ConnectAsGuest += AccountLoginPrompt_ConnectAsGuest;
-            accountLoginPrompt.ConnectWithAccount += AccountLoginPrompt_ConnectWithAccount;
+            if (ClientConfiguration.Instance.UseCnCNetAPI)
+            {
+                accountLoginPrompt = new CnCNetAccountLoginPrompt(WindowManager);
+                accountLoginPrompt.ConnectAsGuest += AccountLoginPrompt_ConnectAsGuest;
+                accountLoginPrompt.ConnectWithAccount += AccountLoginPrompt_ConnectWithAccount;
 
-            var accountLoginPromptPanel = new DarkeningPanel(WindowManager);
-            accountLoginPromptPanel.Alpha = 0.0f;
-            AddChild(accountLoginPromptPanel);
-            accountLoginPromptPanel.AddChild(accountLoginPrompt);
-            accountLoginPrompt.Disable();
+                var accountLoginPromptPanel = new DarkeningPanel(WindowManager);
+                accountLoginPromptPanel.Alpha = 0.0f;
+                AddChild(accountLoginPromptPanel);
+                accountLoginPromptPanel.AddChild(accountLoginPrompt);
+                accountLoginPrompt.Disable();
 
-            accountLoginWindow = new CnCNetAccountLoginWindow(WindowManager);
-            accountLoginWindow.Cancel += AccountLoginWindow_Cancel;
-            accountLoginWindow.LoginSuccess += AccountLoginWindow_LoginSuccess;
+                accountLoginWindow = new CnCNetAccountLoginWindow(WindowManager);
+                accountLoginWindow.Cancel += AccountLoginWindow_Cancel;
+                accountLoginWindow.LoginSuccess += AccountLoginWindow_LoginSuccess;
 
-            var accountLoginWindowPanel = new DarkeningPanel(WindowManager);
-            accountLoginWindowPanel.Alpha = 0.0f;
-            AddChild(accountLoginWindowPanel);
-            accountLoginWindowPanel.AddChild(accountLoginWindow);
-            accountLoginWindow.Disable();
+                var accountLoginWindowPanel = new DarkeningPanel(WindowManager);
+                accountLoginWindowPanel.Alpha = 0.0f;
+                AddChild(accountLoginWindowPanel);
+                accountLoginWindowPanel.AddChild(accountLoginWindow);
+                accountLoginWindow.Disable();
 
-            accountManagerWindow = new CnCNetAccountManagerWindow(WindowManager);
-            accountManagerWindow.Logout += AccountManagerWindow_Logout;
-            accountManagerWindow.Connect += AccountManagerWindow_Connect;
+                accountManagerWindow = new CnCNetAccountManagerWindow(WindowManager);
+                accountManagerWindow.Logout += AccountManagerWindow_Logout;
+                accountManagerWindow.Connect += AccountManagerWindow_Connect;
 
-            var accountManagerWindowPanel = new DarkeningPanel(WindowManager);
-            accountManagerWindowPanel.Alpha = 0.0f;
-            AddChild(accountManagerWindowPanel);
-            accountManagerWindowPanel.AddChild(accountManagerWindow);
-            accountManagerWindow.Disable();
+                var accountManagerWindowPanel = new DarkeningPanel(WindowManager);
+                accountManagerWindowPanel.Alpha = 0.0f;
+                AddChild(accountManagerWindowPanel);
+                accountManagerWindowPanel.AddChild(accountManagerWindow);
+                accountManagerWindow.Disable();
+            }
 
             passwordRequestWindow = new PasswordRequestWindow(WindowManager, pmWindow);
             passwordRequestWindow.PasswordEntered += PasswordRequestWindow_PasswordEntered;
@@ -1858,7 +1862,26 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             {
                 if (ClientConfiguration.Instance.UseCnCNetAPI)
                 {
-                    accountLoginPrompt.Enable();
+                    if (CnCNetAPI.Instance.IsAuthed)
+                    {
+                        accountLoginPrompt?.Enable();
+                    }
+                    else
+                    {
+                        _ = Task.Run(() =>
+                        {
+                            try
+                            {
+                                CnCNetAPI.Instance.InitializeAccount();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log("CnCNet API initialization failed: " + ex.Message);
+                            }
+
+                            WindowManager.AddCallback(new Action(() => accountLoginPrompt?.Enable()), null);
+                        });
+                    }
                 }
                 else
                 {

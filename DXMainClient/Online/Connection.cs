@@ -131,11 +131,6 @@ namespace DTAClient.Online
             }
         }
 
-        public static string GetId()
-        {
-            return ClientConfiguration.Instance.LocalGame + "." + systemId;
-        }
-
         public static bool IsIdSet()
         {
             lock (idLocker)

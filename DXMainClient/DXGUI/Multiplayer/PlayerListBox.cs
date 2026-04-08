@@ -131,6 +131,8 @@ namespace DTAClient.DXGUI.Multiplayer
                     x += voiceIcon.Width + MARGIN;
                 }
 
+                x += lbItem.TextXPadding;
+
                 DrawStringWithShadow(lbItem.Text, FontIndex,
                     new Vector2(x, height), lbItem.TextColor);
 

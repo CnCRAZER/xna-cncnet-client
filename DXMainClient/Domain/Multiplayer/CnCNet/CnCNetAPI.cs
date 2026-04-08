@@ -1,4 +1,4 @@
-﻿﻿using ClientCore;
+﻿using ClientCore;
 using ClientCore.Extensions;
 using Microsoft.Win32;
 using Newtonsoft.Json;
@@ -50,8 +50,16 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         public string? ErrorMessage { get; private set; }
 
         private const int REQUEST_TIMEOUT = 10000; // In milliseconds
-        private readonly string tokenPath = "SOFTWARE\\CnCNet\\QuickMatch";
+        private const string tokenPath = "SOFTWARE\\CnCNet\\QuickMatch";
         private static string TokenFilePath => SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "access.token");
+
+        // These are global ServicePoint settings applied once for the process.
+        // Expect100Continue interferes with POST requests to the API.
+        static CnCNetAPI()
+        {
+            ServicePointManager.Expect100Continue = false;
+            ServicePointManager.DefaultConnectionLimit = 5;
+        }
 
         public CnCNetAPI() { }
 
@@ -101,7 +109,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                     // Call /user/account to validate the token and also refresh local account data
                     byte[] responsebytes = client.DownloadData(ApiBaseUrl + API_USER_ACCOUNT);
                     string response = Encoding.UTF8.GetString(responsebytes);
-                    List<AuthPlayer> accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(response);
+                    List<AuthPlayer>? accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(response);
                     Accounts = accounts ?? new List<AuthPlayer>();
 
                     AccountUpdated?.Invoke(this, EventArgs.Empty);
@@ -131,7 +139,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                     byte[] responsebytes = client.UploadValues(ApiBaseUrl + API_AUTH_LOGIN, "POST", request);
                     string response = Encoding.UTF8.GetString(responsebytes);
 
-                    AuthTokenResponse authToken = JsonConvert.DeserializeObject<AuthTokenResponse>(response);
+                    AuthTokenResponse? authToken = JsonConvert.DeserializeObject<AuthTokenResponse>(response);
                     AuthToken = authToken?.Token;
 
                     WriteAuthToken(AuthToken ?? string.Empty);
@@ -190,13 +198,14 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
 #else
                 if (OperatingSystem.IsWindows())
                 {
-                    RegistryKey key = Registry.CurrentUser.OpenSubKey(tokenPath);
+                    RegistryKey? key = Registry.CurrentUser.OpenSubKey(tokenPath);
                     if (key != null)
                     {
-                        string token = key.GetValue("accessToken", "").ToString();
+                        string token = key.GetValue("accessToken", "")?.ToString() ?? string.Empty;
                         key.Close();
                         return token;
                     }
+
                     return string.Empty;
                 }
                 // Non-Windows: read from file under Client user files
@@ -366,7 +375,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                     byte[] responsebytes = client.DownloadData(ApiBaseUrl + API_USER_ACCOUNT);
                     string response = Encoding.UTF8.GetString(responsebytes);
 
-                    List<AuthPlayer> accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(response);
+                    List<AuthPlayer>? accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(response);
                     Accounts = accounts ?? new List<AuthPlayer>();
 
                     AccountUpdated?.Invoke(this, EventArgs.Empty);
@@ -385,19 +394,19 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
     public class AuthTokenResponse
     {
         [JsonProperty("token")]
-        public string Token { get; set; }
+        public string? Token { get; set; }
     }
 
     public class AuthLadder
     {
         [JsonProperty("abbreviation")]
-        public string Abbreviation { get; set; }
+        public string? Abbreviation { get; set; }
     }
 
     public class AuthPlayer
     {
         [JsonProperty("username")]
-        public string Username { get; set; }
+        public string? Username { get; set; }
 
         [JsonProperty("ladder_id")]
         public int LadderId { get; set; }
