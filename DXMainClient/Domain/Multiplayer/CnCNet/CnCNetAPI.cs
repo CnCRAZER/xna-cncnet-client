@@ -125,7 +125,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         /// <summary>
         /// Used to login and get Auth Token.
         /// </summary>
-        public async Task<bool> LoginAsync(string email, string password)
+        public async Task<bool> LoginAsync(string email, string password, bool stayLoggedIn)
         {
             try
             {
@@ -159,9 +159,22 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                 AuthTokenResponse? authToken = JsonConvert.DeserializeObject<AuthTokenResponse>(json);
                 AuthToken = authToken?.Token;
 
-                WriteAuthToken(AuthToken ?? string.Empty);
+                bool success = await GetAccountsAsync();
+                if (!success)
+                    return false;
 
-                return await GetAccountsAsync();
+                if (stayLoggedIn)
+                {
+                    WriteAuthToken(AuthToken ?? string.Empty);
+                    IsAuthed = true;
+                }
+                else
+                {
+                    ClearAuthToken();
+                    IsAuthed = false;
+                }
+
+                return true;
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {

@@ -1,4 +1,5 @@
-﻿using ClientCore.Extensions;
+﻿using ClientCore;
+using ClientCore.Extensions;
 using ClientGUI;
 using DTAClient.Domain.Multiplayer.CnCNet;
 using Microsoft.Xna.Framework;
@@ -21,6 +22,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private XNATextBox tbPlayerEmail = null!;
         private XNAPasswordBox tbPlayerPassword = null!;
+        private XNAClientCheckBox? chkStayLoggedIn;
         private XNALabel lblError = null!;
         private XNAClientButton btnLogin = null!;
 
@@ -96,6 +98,17 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 Text = string.Empty
             };
 
+            if (ClientConfiguration.Instance.UseCnCNetAPI)
+            {
+                chkStayLoggedIn = new XNAClientCheckBox(WindowManager)
+                {
+                    Name = "chkStayLoggedIn",
+                    ClientRectangle = new Rectangle(100, tbPlayerPassword.ClientRectangle.Y + 28, 200, 18),
+                    Text = "Stay Logged In".L10N("Client:CnCNet:StayLoggedInCheckBox"),
+                    Checked = true
+                };
+            }
+
             lblError = new XNALabel(WindowManager)
             {
                 Name = "lblError",
@@ -103,10 +116,12 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 TextColor = Color.Red,
                 Text = string.Empty
             };
-            lblError.ClientRectangle = new Rectangle(12, tbPlayerPassword.ClientRectangle.Y + 35, lblError.ClientRectangle.Width, lblError.ClientRectangle.Height);
+            lblError.ClientRectangle = new Rectangle(12, tbPlayerPassword.ClientRectangle.Y + 52, lblError.ClientRectangle.Width, lblError.ClientRectangle.Height);
 
             AddChild(tbPlayerEmail);
             AddChild(tbPlayerPassword);
+            if (ClientConfiguration.Instance.UseCnCNetAPI)
+                AddChild(chkStayLoggedIn);
             AddChild(lblPlayerEmail);
             AddChild(lblPlayerPassword);
             AddChild(btnLogin);
@@ -171,9 +186,11 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             string email = tbPlayerEmail.Text;
             string password = tbPlayerPassword.Password;
 
+            bool stayLoggedIn = chkStayLoggedIn?.Checked ?? true;
+
             _ = Task.Run(async () =>
             {
-                bool success = await CnCNetAPI.Instance.LoginAsync(email, password);
+                bool success = await CnCNetAPI.Instance.LoginAsync(email, password, stayLoggedIn);
 
                 AddCallback(new Action(() =>
                 {
