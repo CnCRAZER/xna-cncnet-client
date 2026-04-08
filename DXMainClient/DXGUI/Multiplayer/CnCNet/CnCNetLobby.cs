@@ -917,25 +917,37 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void SetLogOutButtonText()
         {
+            bool showAccountLogout = false;
+
             if (isInGameRoom)
             {
                 btnLogout.Text = "Game Lobby".L10N("Client:Main:GameLobby");
-                btnAccountLogout.Visible = false;
-                btnAccountLogout.Enabled = false;
-                return;
             }
-
-            if (UserINISettings.Instance.PersistentMode)
+            else if (UserINISettings.Instance.PersistentMode)
             {
                 btnLogout.Text = "Main Menu".L10N("Client:Main:MainMenu");
-                btnAccountLogout.Visible = ClientConfiguration.Instance.UseCnCNetAPI && CnCNetAPI.Instance.IsAuthed;
-                btnAccountLogout.Enabled = btnAccountLogout.Visible;
-                return;
+                showAccountLogout = ClientConfiguration.Instance.UseCnCNetAPI
+                    && connectionManager.IsConnected
+                    && CnCNetAPI.Instance.IsAuthed;
+            }
+            else
+            {
+                btnLogout.Text = "Log Out".L10N("Client:Main:LogOut");
+                showAccountLogout = ClientConfiguration.Instance.UseCnCNetAPI
+                    && connectionManager.IsConnected
+                    && CnCNetAPI.Instance.IsAuthed;
             }
 
-            btnLogout.Text = "Log Out".L10N("Client:Main:LogOut");
-            btnAccountLogout.Visible = ClientConfiguration.Instance.UseCnCNetAPI && CnCNetAPI.Instance.IsAuthed;
-            btnAccountLogout.Enabled = btnAccountLogout.Visible;
+            btnAccountLogout.Visible = showAccountLogout;
+            btnAccountLogout.Enabled = showAccountLogout;
+
+            int playerListBottom = showAccountLogout
+                ? btnAccountLogout.Y - 6
+                : btnLogout.Y - 6;
+
+            lbPlayerList.ClientRectangle = new Rectangle(
+                lbPlayerList.X, lbPlayerList.Y,
+                lbPlayerList.Width, playerListBottom - lbPlayerList.Y);
         }
 
         private void BtnJoinGame_LeftClick(object sender, EventArgs e) => JoinSelectedGame();
