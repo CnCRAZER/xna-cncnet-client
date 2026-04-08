@@ -1853,12 +1853,12 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 return;
             }
 
-            if (ClientConfiguration.Instance.UseCnCNetAPI && CnCNetAPI.Instance.IsAuthed)
-                CnCNetAPI.Instance.Logout();
-
             if (connectionManager.IsConnected &&
                 !UserINISettings.Instance.PersistentMode)
             {
+                if (ClientConfiguration.Instance.UseCnCNetAPI && CnCNetAPI.Instance.IsAuthed)
+                    CnCNetAPI.Instance.Logout();
+
                 connectionManager.Disconnect();
             }
 
