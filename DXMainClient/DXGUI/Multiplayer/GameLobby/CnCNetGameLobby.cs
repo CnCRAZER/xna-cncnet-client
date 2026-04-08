@@ -81,6 +81,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 new NotificationHandler("LCKGME", HandleNotification, LockGameNotification),
                 new IntNotificationHandler("NVRFY", HandleIntNotification, NotVerifiedNotification),
                 new IntNotificationHandler("INGM", HandleIntNotification, StillInGameNotification),
+                new IntNotificationHandler("AUTOSTART", HandleIntNotification, HandleAutoStartCountdownNotification),
                 new StringCommandHandler(MAP_SHARING_UPLOAD_REQUEST, HandleMapUploadRequest),
                 new StringCommandHandler(MAP_SHARING_FAIL_MESSAGE, HandleMapTransferFailMessage),
                 new StringCommandHandler(MAP_SHARING_DOWNLOAD_REQUEST, HandleMapDownloadRequest),
@@ -785,6 +786,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             if (pInfo != null)
             {
                 Players.Remove(pInfo);
+                CancelAutoStartCountdown();
 
                 CopyPlayerDataToUI();
 
@@ -1639,6 +1641,26 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
             if (IsHost)
                 channel.SendCTCPMessage("GETREADY", QueuedMessageType.GAME_GET_READY_MESSAGE, 0);
+        }
+
+        protected override void AutoStartCountdownNotification(int seconds)
+        {
+            base.AutoStartCountdownNotification(seconds);
+
+            if (IsHost)
+                channel.SendCTCPMessage($"AUTOSTART {seconds}", QueuedMessageType.GAME_NOTIFICATION_MESSAGE, 0);
+        }
+
+        private void HandleAutoStartCountdownNotification(int seconds)
+        {
+            if (!IsHost)
+            {
+                AddNotice(string.Format("Game will auto start in {0} seconds.".L10N("Client:Main:AutoStartCountdown"), seconds));
+#if WINFORMS
+                WindowManager.FlashWindow();
+#endif
+                TopBar.SwitchToPrimary();
+            }
         }
 
         protected override void AISpectatorsNotification()

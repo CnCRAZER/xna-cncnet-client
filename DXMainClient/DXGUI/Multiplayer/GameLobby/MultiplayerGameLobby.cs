@@ -27,6 +27,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
     {
         private const int MAX_DICE = 10;
         private const int MAX_DIE_SIDES = 100;
+        private const int AUTO_START_COUNTDOWN_SECONDS = 30;
+        private const int ALL_READY_COUNTDOWN_SECONDS = 5;
 
         public MultiplayerGameLobby(WindowManager windowManager, string iniName,
             TopBar topBar, MapLoader mapLoader, DiscordHandler discordHandler, PrivateMessagingWindow pmWindow, Random random)
@@ -77,6 +79,9 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 locked = value;
                 if (oldLocked != value)
                 {
+                    if (!locked)
+                        CancelAutoStartCountdown();
+
                     CopyPlayerDataToUI();
                     UpdateDiscordPresence();
                 }
@@ -111,6 +116,10 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         private FileSystemWatcher fsw;
 
         private bool gameSaved = false;
+
+        private XNATimerControl autoStartTimer;
+        private int autoStartSecondsRemaining;
+        private bool autoStartCountdownActive;
 
         protected bool LastMapChangeWasInvalid { get; set; } = false;
 
@@ -185,6 +194,12 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
             sndMessageSound = new EnhancedSoundEffect("message.wav", 0.0, 0.0, ClientConfiguration.Instance.SoundMessageCooldown);
             sndGetReadySound = new EnhancedSoundEffect("getready.wav", 0.0, 0.0, ClientConfiguration.Instance.SoundGameLobbyGetReadyCooldown);
             sndReturnSound = new EnhancedSoundEffect("return.wav", 0.0, 0.0, ClientConfiguration.Instance.SoundGameLobbyReturnCooldown);
+
+            autoStartTimer = new XNATimerControl(WindowManager);
+            autoStartTimer.AutoReset = true;
+            autoStartTimer.Interval = TimeSpan.FromSeconds(1);
+            autoStartTimer.TimeElapsed += AutoStartTimer_TimeElapsed;
+            WindowManager.AddAndInitializeControl(autoStartTimer);
 
             if (SavedGameManager.AreSavedGamesAvailable())
             {
@@ -617,6 +632,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             IsHost = isHost;
             Locked = false;
+            CancelAutoStartCountdown();
             CopyPlayerDataToUI();
 
             UpdateMapPreviewBoxEnabledStatus();
@@ -752,6 +768,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         private void MapPreviewBox_StartingLocationApplied(object sender, EventArgs e)
         {
+            CancelAutoStartCountdown();
             ClearReadyStatuses();
             CopyPlayerDataToUI();
             BroadcastPlayerOptions();
@@ -893,13 +910,24 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
                 if (!player.Ready)
                 {
-                    GetReadyNotification();
+                    if (!autoStartCountdownActive)
+                    {
+                        StartAutoStartCountdown();
+                    }
                     return;
                 }
 
             }
 
-            HostLaunchGame();
+            if (autoStartCountdownActive)
+            {
+                // Host clicked launch again while countdown active - force launch immediately
+                ForceReadyAndLaunch();
+                return;
+            }
+
+            // All players are ready - start a short countdown before launching
+            StartAllReadyCountdown();
         }
 
         protected virtual void LockGameNotification() =>
@@ -936,6 +964,124 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
                 sndGetReadySound.Play();
         }
 
+        /// <summary>
+        /// Starts the auto start countdown. Notifies all players that the game will
+        /// auto start in <see cref="AUTO_START_COUNTDOWN_SECONDS"/> seconds.
+        /// </summary>
+        private void StartAutoStartCountdown()
+        {
+            autoStartCountdownActive = true;
+            autoStartSecondsRemaining = AUTO_START_COUNTDOWN_SECONDS;
+            GetReadyNotification();
+            AutoStartCountdownNotification(autoStartSecondsRemaining);
+            autoStartTimer.Start();
+        }
+
+        /// <summary>
+        /// Starts a short countdown when all players are already ready and the host clicks launch.
+        /// </summary>
+        private void StartAllReadyCountdown()
+        {
+            autoStartCountdownActive = true;
+            autoStartSecondsRemaining = ALL_READY_COUNTDOWN_SECONDS;
+            AddNotice(string.Format("All players are ready! Game will start in {0} seconds.".L10N("Client:Main:AllReadyCountdown"), ALL_READY_COUNTDOWN_SECONDS));
+            AutoStartCountdownNotification(autoStartSecondsRemaining);
+            autoStartTimer.Start();
+        }
+
+        /// <summary>
+        /// Handler for each tick of the auto start countdown timer.
+        /// Checks if all players are ready and if the countdown has elapsed.
+        /// </summary>
+        private void AutoStartTimer_TimeElapsed(object sender, EventArgs e)
+        {
+            if (!autoStartCountdownActive)
+            {
+                autoStartTimer.Pause();
+                return;
+            }
+
+            autoStartSecondsRemaining--;
+
+            if (autoStartSecondsRemaining <= 0)
+            {
+                ForceReadyAndLaunch();
+                return;
+            }
+
+            // Check if all non-host players are now ready
+            bool allReady = AreAllNonHostPlayersReady();
+
+            if (allReady && autoStartSecondsRemaining > ALL_READY_COUNTDOWN_SECONDS)
+            {
+                // All players readied up during countdown, switch to shorter timer
+                autoStartSecondsRemaining = ALL_READY_COUNTDOWN_SECONDS;
+                AddNotice(string.Format("All players are ready! Game will start in {0} seconds.".L10N("Client:Main:AllReadyCountdown"), ALL_READY_COUNTDOWN_SECONDS));
+            }
+            else if (autoStartSecondsRemaining % 10 == 0 || autoStartSecondsRemaining <= 5)
+            {
+                AutoStartCountdownNotification(autoStartSecondsRemaining);
+            }
+        }
+
+        /// <summary>
+        /// Forces all non-ready players to ready and launches the game.
+        /// </summary>
+        private void ForceReadyAndLaunch()
+        {
+            autoStartCountdownActive = false;
+            autoStartTimer.Pause();
+
+            for (int i = 1; i < Players.Count; i++)
+            {
+                Players[i].Ready = true;
+            }
+
+            CopyPlayerDataToUI();
+            BroadcastPlayerOptions();
+            AddNotice("Auto starting game...".L10N("Client:Main:AutoStartLaunching"));
+            HostLaunchGame();
+        }
+
+        /// <summary>
+        /// Cancels the auto start countdown if active.
+        /// </summary>
+        protected void CancelAutoStartCountdown()
+        {
+            if (autoStartCountdownActive)
+            {
+                autoStartCountdownActive = false;
+                autoStartTimer.Pause();
+                AddNotice("Auto start countdown cancelled.".L10N("Client:Main:AutoStartCancelled"));
+            }
+        }
+
+        /// <summary>
+        /// Checks if all non-host human players are ready.
+        /// </summary>
+        private bool AreAllNonHostPlayersReady()
+        {
+            for (int i = 1; i < Players.Count; i++)
+            {
+                if (Players[i].Name == ProgramConstants.PLAYERNAME)
+                    continue;
+
+                if (!Players[i].Ready)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Broadcasts the auto start countdown notification to all players.
+        /// Override in derived classes to broadcast to remote players.
+        /// </summary>
+        protected virtual void AutoStartCountdownNotification(int seconds)
+        {
+            AddNotice(string.Format("Game will auto start in {0} seconds.".L10N("Client:Main:AutoStartCountdown"), seconds));
+        }
+
         protected virtual void InsufficientPlayersNotification()
         {
             Debug.Assert(GameModeMap != null, "GameModeMap should not be null");
@@ -952,6 +1098,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
 
         public virtual void Clear()
         {
+            CancelAutoStartCountdown();
+
             if (!IsHost)
                 AIPlayers.Clear();
 
@@ -962,6 +1110,7 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         {
             base.OnGameOptionChanged();
 
+            CancelAutoStartCountdown();
             ClearReadyStatuses();
             CopyPlayerDataToUI();
         }
@@ -1116,6 +1265,8 @@ namespace DTAClient.DXGUI.Multiplayer.GameLobby
         protected override void ChangeMap(GameModeMap gameModeMap)
         {
             base.ChangeMap(gameModeMap);
+
+            CancelAutoStartCountdown();
 
             bool resetAutoReady = gameModeMap?.GameMode == null || gameModeMap?.Map == null;
 
