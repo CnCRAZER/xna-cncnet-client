@@ -424,7 +424,7 @@ namespace ClientCore
 
         public bool DisplayPlayerCountInTopBar => clientDefinitionsIni.GetBooleanValue(SETTINGS, "DisplayPlayerCountInTopBar", false);
 
-        public bool UseCnCNetAPI => clientDefinitionsIni.GetBooleanValue(SETTINGS, "UseCnCNetAPI", true);
+        public bool UseCnCNetAPI => clientDefinitionsIni.GetBooleanValue(SETTINGS, "UseCnCNetAPI", false);
 
         /// <summary>
         /// Base URL for the CnCNet API, typically ends with /api/v1/.
