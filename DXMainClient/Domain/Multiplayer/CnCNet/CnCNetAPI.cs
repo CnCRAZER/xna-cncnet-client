@@ -26,6 +26,8 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         private const string API_USER_ACCOUNT = "user/account";
         // Official API: POST /api/v1/player/create (auth: Bearer <JWT>)
         private const string API_PLAYER_CREATE = "player/create";
+        // Official API: POST /api/v1/player/status (auth: Bearer <JWT>)
+        private const string API_PLAYER_STATUS = "player/status";
 
         private static string ApiBaseUrl
         {
@@ -282,6 +284,8 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
 
                     client.UploadValues(ApiBaseUrl + API_PLAYER_CREATE, "POST", request);
 
+                    ActivatePlayer(username);
+
                     bool success = GetAccounts();
 
                     return success;
@@ -325,6 +329,31 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         }
 
         /// <summary>
+        /// Activates a player nickname by toggling its status on the CnCNet ladder.
+        /// This creates a PlayerActiveHandle so the nickname appears as active.
+        /// </summary>
+        private void ActivatePlayer(string username)
+        {
+            try
+            {
+                using (ExtendedWebClient client = new ExtendedWebClient(REQUEST_TIMEOUT))
+                {
+                    client.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + AuthToken);
+
+                    var request = new NameValueCollection();
+                    request.Add("username", username);
+                    request.Add("ladderAbbrev", ClientConfiguration.Instance.CnCNetLadderAbbrev);
+
+                    client.UploadValues(ApiBaseUrl + API_PLAYER_STATUS, "POST", request);
+                }
+            }
+            catch (WebException ex)
+            {
+                Logger.Log("Failed to activate player: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Gets nick names from their account (active for current month)
         /// </summary>
         public bool GetAccounts()
@@ -359,9 +388,21 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         public string Token { get; set; }
     }
 
+    public class AuthLadder
+    {
+        [JsonProperty("abbreviation")]
+        public string Abbreviation { get; set; }
+    }
+
     public class AuthPlayer
     {
         [JsonProperty("username")]
         public string Username { get; set; }
+
+        [JsonProperty("ladder_id")]
+        public int LadderId { get; set; }
+
+        [JsonProperty("ladder")]
+        public AuthLadder? Ladder { get; set; }
     }
 }

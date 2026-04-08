@@ -183,9 +183,16 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private void PopulateAccountList()
         {
             ddAccounts.Items.Clear();
+            string ladderAbbrev = ClientConfiguration.Instance.CnCNetLadderAbbrev;
 
             foreach (AuthPlayer player in CnCNetAPI.Instance.Accounts)
             {
+                if (player.Ladder == null ||
+                    !string.Equals(player.Ladder.Abbreviation, ladderAbbrev, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 ddAccounts.AddItem(new XNADropDownItem { Text = player.Username });
             }
 
