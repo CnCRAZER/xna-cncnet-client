@@ -644,6 +644,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 accountLoginPrompt = new CnCNetAccountLoginPrompt(WindowManager);
                 accountLoginPrompt.ConnectAsGuest += AccountLoginPrompt_ConnectAsGuest;
                 accountLoginPrompt.ConnectWithAccount += AccountLoginPrompt_ConnectWithAccount;
+                accountLoginPrompt.Logout += AccountLoginPrompt_Logout;
 
                 var accountLoginPromptPanel = new DarkeningPanel(WindowManager);
                 accountLoginPromptPanel.Alpha = 0.0f;
@@ -847,7 +848,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private void AccountLoginWindow_Cancel(object sender, EventArgs e)
         {
             accountLoginWindow.Disable();
-            accountLoginPrompt.Enable();
+            ShowAccountLoginPrompt();
         }
 
         private void AccountLoginWindow_LoginSuccess(object sender, EventArgs e)
@@ -859,7 +860,19 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private void AccountManagerWindow_Logout(object sender, EventArgs e)
         {
             accountManagerWindow.Disable();
-            accountLoginPrompt.Enable();
+            ShowAccountLoginPrompt();
+        }
+
+        private void AccountLoginPrompt_Logout(object sender, EventArgs e)
+        {
+            CnCNetAPI.Instance.Logout();
+            ShowAccountLoginPrompt();
+        }
+
+        private void ShowAccountLoginPrompt()
+        {
+            accountLoginPrompt?.SetLogoutVisibility(CnCNetAPI.Instance.IsAuthed);
+            accountLoginPrompt?.Enable();
         }
 
         private void AccountManagerWindow_Connect(object sender, EventArgs e)
@@ -1864,7 +1877,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                 {
                     if (CnCNetAPI.Instance.IsAuthed)
                     {
-                        accountLoginPrompt?.Enable();
+                        ShowAccountLoginPrompt();
                     }
                     else
                     {
@@ -1879,7 +1892,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                                 Logger.Log("CnCNet API initialization failed: " + ex.Message);
                             }
 
-                            WindowManager.AddCallback(new Action(() => accountLoginPrompt?.Enable()), null);
+                            WindowManager.AddCallback(new Action(ShowAccountLoginPrompt), null);
                         });
                     }
                 }

@@ -15,6 +15,9 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
     {
         public event EventHandler? ConnectAsGuest;
         public event EventHandler? ConnectWithAccount;
+        public event EventHandler? Logout;
+
+        private XNAClientButton btnLogout = null!;
 
         public CnCNetAccountLoginPrompt(WindowManager windowManager) : base(windowManager) { }
 
@@ -52,6 +55,16 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             };
             btnConnectAsGuest.LeftClick += BtnConnectAsGuest_LeftClick;
 
+            btnLogout = new XNAClientButton(WindowManager)
+            {
+                Name = "btnLogout",
+                ClientRectangle = new Rectangle((Width - 60) / 2, btnConnectAsGuest.Y, 60, 23),
+                Text = "Logout".L10N("Client:CnCNet:LogoutButton"),
+                Visible = false,
+                Enabled = false
+            };
+            btnLogout.LeftClick += BtnLogout_LeftClick;
+
             var btnLoginWithAccount = new XNAClientButton(WindowManager)
             {
                 Name = "btnLoginWithAccount",
@@ -61,6 +74,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             btnLoginWithAccount.LeftClick += BtnLoginWithAccount_LeftClick;
 
             AddChild(btnConnectAsGuest);
+            AddChild(btnLogout);
             AddChild(btnLoginWithAccount);
 
             base.Initialize();
@@ -78,6 +92,17 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             ConnectWithAccount?.Invoke(this, EventArgs.Empty);
             Disable();
+        }
+
+        public void SetLogoutVisibility(bool visible)
+        {
+            btnLogout.Visible = visible;
+            btnLogout.Enabled = visible;
+        }
+
+        private void BtnLogout_LeftClick(object? sender, EventArgs e)
+        {
+            Logout?.Invoke(this, EventArgs.Empty);
         }
 
         private void BtnConnectAsGuest_LeftClick(object? sender, EventArgs e)
