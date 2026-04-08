@@ -1,4 +1,4 @@
-﻿using ClientCore;
+﻿﻿using ClientCore;
 using ClientCore.Extensions;
 using Microsoft.Win32;
 using Newtonsoft.Json;

@@ -131,6 +131,9 @@ namespace DTAClient.DXGUI.Multiplayer
                     x += voiceIcon.Width + MARGIN;
                 }
 
+                DrawStringWithShadow(lbItem.Text, FontIndex,
+                    new Vector2(x, height), lbItem.TextColor);
+
                 height += LineHeight;
             }
 
