@@ -123,15 +123,16 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             btnDisplayAdvancedOptions = new XNAClientButton(WindowManager);
             btnDisplayAdvancedOptions.Name = nameof(btnDisplayAdvancedOptions);
+            int advancedOptionsY = lblPassword.Bottom + UIDesignConstants.CONTROL_VERTICAL_MARGIN * 3;
             btnDisplayAdvancedOptions.ClientRectangle = new Rectangle(UIDesignConstants.EMPTY_SPACE_SIDES +
-                UIDesignConstants.CONTROL_HORIZONTAL_MARGIN, lblPassword.Bottom + UIDesignConstants.CONTROL_VERTICAL_MARGIN * 3, UIDesignConstants.BUTTON_WIDTH_133, UIDesignConstants.BUTTON_HEIGHT);
+                UIDesignConstants.CONTROL_HORIZONTAL_MARGIN, advancedOptionsY, UIDesignConstants.BUTTON_WIDTH_133, UIDesignConstants.BUTTON_HEIGHT);
             btnDisplayAdvancedOptions.Text = "Advanced Options".L10N("Client:Main:AdvancedOptions");
             btnDisplayAdvancedOptions.LeftClick += BtnDisplayAdvancedOptions_LeftClick;
 
             lblTunnelServer = new XNALabel(WindowManager);
             lblTunnelServer.Name = nameof(lblTunnelServer);
             lblTunnelServer.ClientRectangle = new Rectangle(UIDesignConstants.EMPTY_SPACE_SIDES +
-                UIDesignConstants.CONTROL_HORIZONTAL_MARGIN, lblPassword.Bottom + UIDesignConstants.CONTROL_VERTICAL_MARGIN * 4, 0, 0);
+                UIDesignConstants.CONTROL_HORIZONTAL_MARGIN, btnDisplayAdvancedOptions.Bottom + UIDesignConstants.CONTROL_VERTICAL_MARGIN, 0, 0);
             lblTunnelServer.Text = "Tunnel server:".L10N("Client:Main:TunnelServer");
             lblTunnelServer.Enabled = false;
             lblTunnelServer.Visible = false;
@@ -263,8 +264,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             }
 
             GameCreated?.Invoke(this,
-                new GameCreationEventArgs(gameName,int.Parse(ddMaxPlayers.SelectedItem.Text),
-                tbPassword.Text,tunnelHandler.Tunnels[lbTunnelList.SelectedIndex],
+                new GameCreationEventArgs(gameName, int.Parse(ddMaxPlayers.SelectedItem.Text),
+                tbPassword.Text, tunnelHandler.Tunnels[lbTunnelList.SelectedIndex],
                 ddSkillLevel.SelectedIndex)
             );
         }

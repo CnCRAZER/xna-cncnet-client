@@ -131,13 +131,10 @@ namespace DTAClient.DXGUI.Multiplayer
                     x += voiceIcon.Width + MARGIN;
                 }
 
-                // Player Name
-                string name = user.IsAdmin ? user.IRCUser.Name + " " + "(Admin)".L10N("Client:Main:AdminSuffix") : user.IRCUser.Name;
                 x += lbItem.TextXPadding;
 
-                DrawStringWithShadow(name, FontIndex,
-                    new Vector2(x, height),
-                    user.IsAdmin ? Color.Red : lbItem.TextColor);
+                DrawStringWithShadow(lbItem.Text, FontIndex,
+                    new Vector2(x, height), lbItem.TextColor);
 
                 height += LineHeight;
             }
