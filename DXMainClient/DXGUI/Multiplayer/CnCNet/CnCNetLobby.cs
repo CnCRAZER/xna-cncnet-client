@@ -73,6 +73,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private GameListBox lbGameList;
         private GlobalContextMenu globalContextMenu;
 
+        private XNAClientButton btnMainMenu;
         private XNAClientButton btnLogout;
         private XNAClientButton btnNewGame;
         private XNAClientButton btnJoinGame;
@@ -188,12 +189,21 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             btnJoinGame.AllowClick = false;
             btnJoinGame.LeftClick += BtnJoinGame_LeftClick;
 
+            btnMainMenu = new XNAClientButton(WindowManager);
+            btnMainMenu.Name = nameof(btnMainMenu);
+            btnMainMenu.ClientRectangle = new Rectangle(Width - 145, btnNewGame.Y,
+                UIDesignConstants.BUTTON_WIDTH_133, UIDesignConstants.BUTTON_HEIGHT);
+            btnMainMenu.Text = "Main Menu".L10N("Client:Main:MainMenu");
+            btnMainMenu.LeftClick += BtnMainMenu_LeftClick;
+
             btnLogout = new XNAClientButton(WindowManager);
             btnLogout.Name = nameof(btnLogout);
-            btnLogout.ClientRectangle = new Rectangle(Width - 145, btnNewGame.Y,
+            btnLogout.ClientRectangle = new Rectangle(btnMainMenu.X, btnMainMenu.Y - UIDesignConstants.BUTTON_HEIGHT - 6,
                 UIDesignConstants.BUTTON_WIDTH_133, UIDesignConstants.BUTTON_HEIGHT);
             btnLogout.Text = "Log Out".L10N("Client:Main:LogOut");
             btnLogout.LeftClick += BtnLogout_LeftClick;
+            btnLogout.Visible = false;
+            btnLogout.Enabled = false;
 
             var gameListRectangle = new Rectangle(
                 btnNewGame.X, 41,
@@ -219,7 +229,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lbPlayerList.Name = nameof(lbPlayerList);
             lbPlayerList.ClientRectangle = new Rectangle(Width - 202,
                 20, 190,
-                btnLogout.Y - 26);
+                btnMainMenu.Y - 26);
             lbPlayerList.PanelBackgroundDrawMode = PanelBackgroundImageDrawMode.STRETCHED;
             lbPlayerList.BackgroundTexture = AssetLoader.CreateTexture(new Color(0, 0, 0, 128), 1, 1);
             lbPlayerList.LineHeight = 16;
@@ -350,6 +360,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             AddChild(btnNewGame);
             AddChild(btnJoinGame);
+            AddChild(btnMainMenu);
             AddChild(btnLogout);
             AddChild(lbPlayerList);
             AddChild(lbChatMessages);
@@ -902,16 +913,27 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             if (isInGameRoom)
             {
-                btnLogout.Text = "Game Lobby".L10N("Client:Main:GameLobby");
-            }
-            else if (UserINISettings.Instance.PersistentMode)
-            {
-                btnLogout.Text = "Main Menu".L10N("Client:Main:MainMenu");
+                btnMainMenu.Text = "Game Lobby".L10N("Client:Main:GameLobby");
             }
             else
             {
-                btnLogout.Text = "Log Out".L10N("Client:Main:LogOut");
+                btnMainMenu.Text = "Main Menu".L10N("Client:Main:MainMenu");
             }
+
+            bool showLogout = ClientConfiguration.Instance.UseCnCNetAPI
+                && connectionManager.IsConnected
+                && CnCNetAPI.Instance.IsAuthed;
+
+            btnLogout.Visible = showLogout;
+            btnLogout.Enabled = showLogout;
+
+            int playerListBottom = showLogout
+                ? btnLogout.Y - 6
+                : btnMainMenu.Y - 6;
+
+            lbPlayerList.ClientRectangle = new Rectangle(
+                lbPlayerList.X, lbPlayerList.Y,
+                lbPlayerList.Width, playerListBottom - lbPlayerList.Y);
         }
 
         private void BtnJoinGame_LeftClick(object sender, EventArgs e) => JoinSelectedGame();
@@ -1845,22 +1867,18 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void UpdateMessageBox_NoClicked(XNAMessageBox messageBox) => updateDenied = true;
 
+        private void BtnMainMenu_LeftClick(object sender, EventArgs e)
+        {
+            topBar.SwitchToPrimary();
+        }
+
         private void BtnLogout_LeftClick(object sender, EventArgs e)
         {
-            if (isInGameRoom)
-            {
-                topBar.SwitchToPrimary();
-                return;
-            }
+            if (ClientConfiguration.Instance.UseCnCNetAPI && CnCNetAPI.Instance.IsAuthed)
+                CnCNetAPI.Instance.Logout();
 
-            if (connectionManager.IsConnected &&
-                !UserINISettings.Instance.PersistentMode)
-            {
-                if (ClientConfiguration.Instance.UseCnCNetAPI && CnCNetAPI.Instance.IsAuthed)
-                    CnCNetAPI.Instance.Logout();
-
+            if (connectionManager.IsConnected)
                 connectionManager.Disconnect();
-            }
 
             topBar.SwitchToPrimary();
         }
