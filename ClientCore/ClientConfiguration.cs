@@ -424,6 +424,19 @@ namespace ClientCore
 
         public bool DisplayPlayerCountInTopBar => clientDefinitionsIni.GetBooleanValue(SETTINGS, "DisplayPlayerCountInTopBar", false);
 
+        public bool UseCnCNetAPI => clientDefinitionsIni.GetBooleanValue(SETTINGS, "UseCnCNetAPI", true);
+
+        /// <summary>
+        /// Base URL for the CnCNet API, typically ends with /api/v1/.
+        /// </summary>
+        public string CnCNetApiUrl => clientDefinitionsIni.GetStringValue(SETTINGS, "CnCNetAPIUrl", "http://cncnet-api/api/v1/");
+
+        /// <summary>
+        /// The ladder abbreviation used for creating player nicknames via the CnCNet API.
+        /// Defaults to "custom" (the non-competitive Custom Lobby ladder).
+        /// </summary>
+        public string CnCNetLadderAbbrev => clientDefinitionsIni.GetStringValue(SETTINGS, "CnCNetLadderAbbrev", "custom");
+
         /// <summary>
         /// The name of the executable in the main game directory that selects
         /// the correct main client executable.

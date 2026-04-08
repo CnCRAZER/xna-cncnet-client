@@ -115,6 +115,10 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private CnCNetLoginWindow loginWindow;
 
+        private CnCNetAccountLoginPrompt accountLoginPrompt;
+        private CnCNetAccountLoginWindow accountLoginWindow;
+        private CnCNetAccountManagerWindow accountManagerWindow;
+
         private TopBar topBar;
 
         private PrivateMessagingWindow pmWindow;
@@ -634,6 +638,36 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             loginWindowPanel.AddChild(loginWindow);
             loginWindow.Disable();
 
+            accountLoginPrompt = new CnCNetAccountLoginPrompt(WindowManager);
+            accountLoginPrompt.ConnectAsGuest += AccountLoginPrompt_ConnectAsGuest;
+            accountLoginPrompt.ConnectWithAccount += AccountLoginPrompt_ConnectWithAccount;
+
+            var accountLoginPromptPanel = new DarkeningPanel(WindowManager);
+            accountLoginPromptPanel.Alpha = 0.0f;
+            AddChild(accountLoginPromptPanel);
+            accountLoginPromptPanel.AddChild(accountLoginPrompt);
+            accountLoginPrompt.Disable();
+
+            accountLoginWindow = new CnCNetAccountLoginWindow(WindowManager);
+            accountLoginWindow.Cancel += AccountLoginWindow_Cancel;
+            accountLoginWindow.LoginSuccess += AccountLoginWindow_LoginSuccess;
+
+            var accountLoginWindowPanel = new DarkeningPanel(WindowManager);
+            accountLoginWindowPanel.Alpha = 0.0f;
+            AddChild(accountLoginWindowPanel);
+            accountLoginWindowPanel.AddChild(accountLoginWindow);
+            accountLoginWindow.Disable();
+
+            accountManagerWindow = new CnCNetAccountManagerWindow(WindowManager);
+            accountManagerWindow.Logout += AccountManagerWindow_Logout;
+            accountManagerWindow.Connect += AccountManagerWindow_Connect;
+
+            var accountManagerWindowPanel = new DarkeningPanel(WindowManager);
+            accountManagerWindowPanel.Alpha = 0.0f;
+            AddChild(accountManagerWindowPanel);
+            accountManagerWindowPanel.AddChild(accountManagerWindow);
+            accountManagerWindow.Disable();
+
             passwordRequestWindow = new PasswordRequestWindow(WindowManager, pmWindow);
             passwordRequestWindow.PasswordEntered += PasswordRequestWindow_PasswordEntered;
 
@@ -783,6 +817,52 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         {
             topBar.SwitchToPrimary();
             loginWindow.Disable();
+        }
+
+        private void AccountLoginPrompt_ConnectAsGuest(object sender, EventArgs e)
+        {
+            accountLoginPrompt.Disable();
+            loginWindow.Enable();
+            loginWindow.LoadSettings();
+        }
+
+        private void AccountLoginPrompt_ConnectWithAccount(object sender, EventArgs e)
+        {
+            accountLoginPrompt.Disable();
+
+            if (CnCNetAPI.Instance.IsAuthed)
+            {
+                accountManagerWindow.Enable();
+            }
+            else
+            {
+                accountLoginWindow.Enable();
+            }
+        }
+
+        private void AccountLoginWindow_Cancel(object sender, EventArgs e)
+        {
+            accountLoginWindow.Disable();
+            accountLoginPrompt.Enable();
+        }
+
+        private void AccountLoginWindow_LoginSuccess(object sender, EventArgs e)
+        {
+            accountLoginWindow.Disable();
+            accountManagerWindow.Enable();
+        }
+
+        private void AccountManagerWindow_Logout(object sender, EventArgs e)
+        {
+            accountManagerWindow.Disable();
+            accountLoginPrompt.Enable();
+        }
+
+        private void AccountManagerWindow_Connect(object sender, EventArgs e)
+        {
+            accountManagerWindow.Disable();
+            connectionManager.Connect();
+            SetLogOutButtonText();
         }
 
         private void GameLoadingLobby_GameLeft(object sender, EventArgs e)
@@ -1776,8 +1856,15 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
             if (!connectionManager.IsConnected && !connectionManager.IsAttemptingConnection)
             {
-                loginWindow.Enable();
-                loginWindow.LoadSettings();
+                if (ClientConfiguration.Instance.UseCnCNetAPI)
+                {
+                    accountLoginPrompt.Enable();
+                }
+                else
+                {
+                    loginWindow.Enable();
+                    loginWindow.LoadSettings();
+                }
             }
 
             SetLogOutButtonText();
