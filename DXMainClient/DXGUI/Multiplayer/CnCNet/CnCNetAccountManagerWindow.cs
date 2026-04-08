@@ -8,6 +8,7 @@ using Rampastring.XNAUI;
 using Rampastring.XNAUI.Input;
 using Rampastring.XNAUI.XNAControls;
 using System;
+using System.Threading.Tasks;
 
 #nullable enable
 
@@ -113,7 +114,8 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void CnCNetAuthApi_AccountUpdated(object? sender, EventArgs e)
         {
-            PopulateAccountList();
+            // AccountUpdated may fire on a background thread; marshal to the UI thread.
+            AddCallback(new Action(PopulateAccountList));
         }
 
         private void Keyboard_OnKeyPressed(object? sender, KeyPressEventArgs e)
@@ -157,27 +159,42 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void BtnCreate_LeftClick(object? sender, EventArgs e)
         {
+            if (!btnCreate.Enabled)
+                return;
+
+            // Disable immediately to prevent re-entrant clicks during validation
+            btnCreate.Enabled = false;
+
             lblError.Text = string.Empty;
             string nickname = tbNewNickname.Text.Trim();
 
             if (string.IsNullOrEmpty(nickname))
+            {
+                btnCreate.Enabled = true;
                 return;
+            }
 
             NameValidationError validationError = NameValidator.IsNameValid(nickname, out string errorMessage);
             if (validationError != NameValidationError.None)
             {
                 lblError.Text = errorMessage;
+                btnCreate.Enabled = true;
                 return;
             }
 
-            bool success = CnCNetAPI.Instance.CreatePlayer(nickname);
-            if (!success)
+            _ = Task.Run(async () =>
             {
-                lblError.Text = CnCNetAPI.Instance.ErrorMessage ?? "Failed to create nickname.".L10N("Client:CnCNet:CreateNicknameFailed");
-                return;
-            }
+                bool success = await CnCNetAPI.Instance.CreatePlayerAsync(nickname);
 
-            tbNewNickname.Text = string.Empty;
+                AddCallback(new Action(() =>
+                {
+                    btnCreate.Enabled = true;
+                    if (!success)
+                        lblError.Text = CnCNetAPI.Instance.ErrorMessage ?? "Failed to create nickname.".L10N("Client:CnCNet:CreateNicknameFailed");
+                    else
+                        tbNewNickname.Text = string.Empty;
+                }));
+            });
         }
 
         private void PopulateAccountList()

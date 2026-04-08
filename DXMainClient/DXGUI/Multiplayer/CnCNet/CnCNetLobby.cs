@@ -1868,11 +1868,11 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
                     }
                     else
                     {
-                        _ = Task.Run(() =>
+                        _ = Task.Run(async () =>
                         {
                             try
                             {
-                                CnCNetAPI.Instance.InitializeAccount();
+                                await CnCNetAPI.Instance.InitializeAccountAsync();
                             }
                             catch (Exception ex)
                             {

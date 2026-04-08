@@ -8,6 +8,7 @@ using Rampastring.XNAUI.Input;
 using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 #nullable enable
 
@@ -21,6 +22,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
         private XNATextBox tbPlayerEmail = null!;
         private XNAPasswordBox tbPlayerPassword = null!;
         private XNALabel lblError = null!;
+        private XNAClientButton btnLogin = null!;
 
         public CnCNetAccountLoginWindow(WindowManager windowManager) : base(windowManager) { }
 
@@ -40,7 +42,7 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
             lblLoginWindowTitle.CenterOnParent();
             lblLoginWindowTitle.ClientRectangle = new Rectangle(lblLoginWindowTitle.X, 12, lblLoginWindowTitle.Width, lblLoginWindowTitle.Height);
 
-            var btnLogin = new XNAClientButton(WindowManager)
+            btnLogin = new XNAClientButton(WindowManager)
             {
                 Name = "btnLogin",
                 ClientRectangle = new Rectangle(12, ClientRectangle.Bottom - 35, 92, 23),
@@ -150,22 +152,38 @@ namespace DTAClient.DXGUI.Multiplayer.CnCNet
 
         private void BtnLogin_LeftClick(object? sender, EventArgs e)
         {
+            if (!btnLogin.Enabled)
+                return;
+
+            // Disable immediately to prevent re-entrant clicks during validation
+            btnLogin.Enabled = false;
+
             if (string.IsNullOrEmpty(tbPlayerEmail.Text) || string.IsNullOrEmpty(tbPlayerPassword.Password))
             {
                 lblError.Text = "Email and password are required.".L10N("Client:CnCNet:LoginFieldsRequired");
+                btnLogin.Enabled = true;
                 return;
             }
 
-            bool success = CnCNetAPI.Instance.Login(tbPlayerEmail.Text, tbPlayerPassword.Password);
+            lblError.Text = string.Empty;
 
-            if (success)
+            // Capture credentials before switching to the background thread
+            string email = tbPlayerEmail.Text;
+            string password = tbPlayerPassword.Password;
+
+            _ = Task.Run(async () =>
             {
-                LoginSuccess?.Invoke(this, EventArgs.Empty);
-            }
-            else
-            {
-                lblError.Text = CnCNetAPI.Instance.ErrorMessage ?? "Login failed.".L10N("Client:CnCNet:LoginFailed");
-            }
+                bool success = await CnCNetAPI.Instance.LoginAsync(email, password);
+
+                AddCallback(new Action(() =>
+                {
+                    btnLogin.Enabled = true;
+                    if (success)
+                        LoginSuccess?.Invoke(this, EventArgs.Empty);
+                    else
+                        lblError.Text = CnCNetAPI.Instance.ErrorMessage ?? "Login failed.".L10N("Client:CnCNet:LoginFailed");
+                }));
+            });
         }
     }
 }

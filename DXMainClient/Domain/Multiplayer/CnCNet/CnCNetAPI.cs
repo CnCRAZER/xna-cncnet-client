@@ -5,10 +5,11 @@ using Newtonsoft.Json;
 using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
 using System.Net;
-using System.Text;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 
 #nullable enable
 
@@ -33,9 +34,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         {
             get
             {
-                // Read from configuration, with sensible default for local dev.
-                // Setting this value inside ClientDefinitions.ini overrides built-in value.
-                string url = ClientConfiguration.Instance.CnCNetApiUrl ?? "http://cncnet-api/api/v1/";
+                string url = ClientConfiguration.Instance.CnCNetApiUrl;
                 if (!url.EndsWith("/"))
                     url += "/";
                 return url;
@@ -53,13 +52,10 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         private const string tokenPath = "SOFTWARE\\CnCNet\\QuickMatch";
         private static string TokenFilePath => SafePath.CombineFilePath(ProgramConstants.ClientUserFilesPath, "access.token");
 
-        // These are global ServicePoint settings applied once for the process.
-        // Expect100Continue interferes with POST requests to the API.
-        static CnCNetAPI()
+        private static readonly HttpClient httpClient = new HttpClient
         {
-            ServicePointManager.Expect100Continue = false;
-            ServicePointManager.DefaultConnectionLimit = 5;
-        }
+            Timeout = TimeSpan.FromMilliseconds(REQUEST_TIMEOUT)
+        };
 
         public CnCNetAPI() { }
 
@@ -77,15 +73,16 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         }
 
         /// <summary>
-        /// Checks and verifies auth token is active, retrieves latest account data
+        /// Checks and verifies auth token is active, retrieves latest account data.
+        /// This method is safe to call from a background thread.
         /// </summary>
-        public void InitializeAccount()
+        public async Task InitializeAccountAsync()
         {
             try
             {
                 AuthToken = ReadAuthToken();
 
-                IsAuthed = VerifyToken();
+                IsAuthed = await VerifyTokenAsync();
 
                 Initialized?.Invoke(IsAuthed);
             }
@@ -97,74 +94,78 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         }
 
         /// <summary>
-        /// Verifies token by calling an authenticated endpoint
+        /// Verifies token by calling an authenticated endpoint.
         /// </summary>
-        private bool VerifyToken()
+        private async Task<bool> VerifyTokenAsync()
         {
             try
             {
-                using (ExtendedWebClient client = new ExtendedWebClient(REQUEST_TIMEOUT))
-                {
-                    client.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + AuthToken);
-                    // Call /user/account to validate the token and also refresh local account data
-                    byte[] responsebytes = client.DownloadData(ApiBaseUrl + API_USER_ACCOUNT);
-                    string response = Encoding.UTF8.GetString(responsebytes);
-                    List<AuthPlayer>? accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(response);
-                    Accounts = accounts ?? new List<AuthPlayer>();
+                var request = new HttpRequestMessage(HttpMethod.Get, ApiBaseUrl + API_USER_ACCOUNT);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
 
-                    AccountUpdated?.Invoke(this, EventArgs.Empty);
+                HttpResponseMessage response = await httpClient.SendAsync(request);
 
-                    return true;
-                }
+                if (!response.IsSuccessStatusCode)
+                    return false;
+
+                string json = await response.Content.ReadAsStringAsync();
+                List<AuthPlayer>? accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(json);
+                Accounts = accounts ?? new List<AuthPlayer>();
+
+                AccountUpdated?.Invoke(this, EventArgs.Empty);
+
+                return true;
             }
-            catch (WebException)
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
                 return false;
             }
         }
 
         /// <summary>
-        /// Used to login and get Auth Token
+        /// Used to login and get Auth Token.
         /// </summary>
-        public bool Login(string email, string password)
+        public async Task<bool> LoginAsync(string email, string password)
         {
             try
             {
-                using (ExtendedWebClient client = new ExtendedWebClient(REQUEST_TIMEOUT))
+                var form = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    var request = new NameValueCollection();
-                    request.Add("email", email);
-                    request.Add("password", password);
+                    ["email"] = email,
+                    ["password"] = password
+                });
 
-                    byte[] responsebytes = client.UploadValues(ApiBaseUrl + API_AUTH_LOGIN, "POST", request);
-                    string response = Encoding.UTF8.GetString(responsebytes);
+                HttpResponseMessage response = await httpClient.PostAsync(ApiBaseUrl + API_AUTH_LOGIN, form);
 
-                    AuthTokenResponse? authToken = JsonConvert.DeserializeObject<AuthTokenResponse>(response);
-                    AuthToken = authToken?.Token;
+                if (!response.IsSuccessStatusCode)
+                {
+                    switch (response.StatusCode)
+                    {
+                        case HttpStatusCode.Unauthorized:
+                            ErrorMessage = "You have entered an incorrect email or password.".L10N("Client:CnCNet:LoginInvalidCredentials");
+                            break;
+                        case HttpStatusCode.NotFound:
+                            ErrorMessage = "Login service endpoint not found. Please verify CnCNetApiUrl points to the API base (e.g. https://ladder.cncnet.org/api/v1/).".L10N("Client:CnCNet:LoginEndpointNotFound");
+                            break;
+                        default:
+                            ErrorMessage = "An error occurred, status code: " + response.StatusCode;
+                            break;
+                    }
 
-                    WriteAuthToken(AuthToken ?? string.Empty);
-
-                    bool success = GetAccounts();
-
-                    return success;
+                    return false;
                 }
+
+                string json = await response.Content.ReadAsStringAsync();
+                AuthTokenResponse? authToken = JsonConvert.DeserializeObject<AuthTokenResponse>(json);
+                AuthToken = authToken?.Token;
+
+                WriteAuthToken(AuthToken ?? string.Empty);
+
+                return await GetAccountsAsync();
             }
-            catch (WebException ex)
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
-                var http = ex.Response as HttpWebResponse;
-                var statusCode = http?.StatusCode.ToString() ?? ex.Status.ToString();
-                switch (statusCode)
-                {
-                    case "Unauthorized":
-                        ErrorMessage = "You have entered an incorrect email or password";
-                        break;
-                    case "NotFound":
-                        ErrorMessage = "Login service endpoint not found. Please verify CnCNetApiUrl points to the API base (e.g. https://ladder.cncnet.org/api/v1/).";
-                        break;
-                    default:
-                        ErrorMessage = "An error occurred, status code: " + statusCode;
-                        break;
-                }
+                ErrorMessage = "Connection failed: " + ex.Message;
                 return false;
             }
         }
@@ -211,9 +212,7 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
                 // Non-Windows: read from file under Client user files
                 var fi = SafePath.GetFile(TokenFilePath);
                 if (fi.Exists)
-                {
                     return File.ReadAllText(fi.FullName).Trim();
-                }
                 return string.Empty;
 #endif
             }
@@ -272,67 +271,56 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
             catch { }
         }
 
-        // Intentionally left without OperatingSystem.IsWindows() wrapper because we
-        // now use preprocessor guards in call sites to satisfy analyzers across TFMs.
-
         /// <summary>
         /// Creates a new player nickname on the CnCNet ladder.
         /// Uses the ladder abbreviation from ClientConfiguration (defaults to "custom").
         /// </summary>
-        public bool CreatePlayer(string username)
+        public async Task<bool> CreatePlayerAsync(string username)
         {
             try
             {
-                using (ExtendedWebClient client = new ExtendedWebClient(REQUEST_TIMEOUT))
+                var request = new HttpRequestMessage(HttpMethod.Post, ApiBaseUrl + API_PLAYER_CREATE);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
+                request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    client.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + AuthToken);
+                    ["username"] = username,
+                    ["ladderAbbrev"] = ClientConfiguration.Instance.CnCNetLadderAbbrev
+                });
 
-                    var request = new NameValueCollection();
-                    request.Add("username", username);
-                    request.Add("ladderAbbrev", ClientConfiguration.Instance.CnCNetLadderAbbrev);
+                HttpResponseMessage response = await httpClient.SendAsync(request);
 
-                    client.UploadValues(ApiBaseUrl + API_PLAYER_CREATE, "POST", request);
-
-                    ActivatePlayer(username);
-
-                    bool success = GetAccounts();
-
-                    return success;
-                }
-            }
-            catch (WebException ex)
-            {
-                var http = ex.Response as HttpWebResponse;
-                var statusCode = http?.StatusCode.ToString() ?? ex.Status.ToString();
-
-                if (http != null)
+                if (!response.IsSuccessStatusCode)
                 {
-                    try
+                    string body = await response.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrEmpty(body))
                     {
-                        using (var reader = new StreamReader(http.GetResponseStream()))
-                        {
-                            string body = reader.ReadToEnd();
-                            ErrorMessage = body;
-
-                            return false;
-                        }
+                        ErrorMessage = body;
+                        return false;
                     }
-                    catch { }
+
+                    switch (response.StatusCode)
+                    {
+                        case HttpStatusCode.BadRequest:
+                            ErrorMessage = "Failed to create nickname. It may already be taken or you have already created one this month.".L10N("Client:CnCNet:CreatePlayerBadRequest");
+                            break;
+                        case HttpStatusCode.Unauthorized:
+                            ErrorMessage = "Your session has expired. Please log in again.".L10N("Client:CnCNet:CreatePlayerUnauthorized");
+                            break;
+                        default:
+                            ErrorMessage = "An error occurred, status code: " + response.StatusCode;
+                            break;
+                    }
+
+                    return false;
                 }
 
-                switch (statusCode)
-                {
-                    case "BadRequest":
-                        ErrorMessage = "Failed to create nickname. It may already be taken or you have already created one this month.".L10N("Client:CnCNet:CreatePlayerBadRequest");
-                        break;
-                    case "Unauthorized":
-                        ErrorMessage = "Your session has expired. Please log in again.".L10N("Client:CnCNet:CreatePlayerUnauthorized");
-                        break;
-                    default:
-                        ErrorMessage = "An error occurred, status code: " + statusCode;
-                        break;
-                }
+                await ActivatePlayerAsync(username);
 
+                return await GetAccountsAsync();
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                ErrorMessage = "Connection failed: " + ex.Message;
                 return false;
             }
         }
@@ -341,49 +329,50 @@ namespace DTAClient.Domain.Multiplayer.CnCNet
         /// Activates a player nickname by toggling its status on the CnCNet ladder.
         /// This creates a PlayerActiveHandle so the nickname appears as active.
         /// </summary>
-        private void ActivatePlayer(string username)
+        private async Task ActivatePlayerAsync(string username)
         {
             try
             {
-                using (ExtendedWebClient client = new ExtendedWebClient(REQUEST_TIMEOUT))
+                var request = new HttpRequestMessage(HttpMethod.Post, ApiBaseUrl + API_PLAYER_STATUS);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
+                request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    client.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + AuthToken);
+                    ["username"] = username,
+                    ["ladderAbbrev"] = ClientConfiguration.Instance.CnCNetLadderAbbrev
+                });
 
-                    var request = new NameValueCollection();
-                    request.Add("username", username);
-                    request.Add("ladderAbbrev", ClientConfiguration.Instance.CnCNetLadderAbbrev);
-
-                    client.UploadValues(ApiBaseUrl + API_PLAYER_STATUS, "POST", request);
-                }
+                await httpClient.SendAsync(request);
             }
-            catch (WebException ex)
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
                 Logger.Log("Failed to activate player: " + ex.Message);
             }
         }
 
         /// <summary>
-        /// Gets nick names from their account (active for current month)
+        /// Gets nick names from their account (active for current month).
         /// </summary>
-        public bool GetAccounts()
+        public async Task<bool> GetAccountsAsync()
         {
             try
             {
-                using (ExtendedWebClient client = new ExtendedWebClient(REQUEST_TIMEOUT))
-                {
-                    client.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + AuthToken);
-                    byte[] responsebytes = client.DownloadData(ApiBaseUrl + API_USER_ACCOUNT);
-                    string response = Encoding.UTF8.GetString(responsebytes);
+                var request = new HttpRequestMessage(HttpMethod.Get, ApiBaseUrl + API_USER_ACCOUNT);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
 
-                    List<AuthPlayer>? accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(response);
-                    Accounts = accounts ?? new List<AuthPlayer>();
+                HttpResponseMessage response = await httpClient.SendAsync(request);
 
-                    AccountUpdated?.Invoke(this, EventArgs.Empty);
+                if (!response.IsSuccessStatusCode)
+                    return false;
 
-                    return true;
-                }
+                string json = await response.Content.ReadAsStringAsync();
+                List<AuthPlayer>? accounts = JsonConvert.DeserializeObject<List<AuthPlayer>>(json);
+                Accounts = accounts ?? new List<AuthPlayer>();
+
+                AccountUpdated?.Invoke(this, EventArgs.Empty);
+
+                return true;
             }
-            catch (WebException)
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
                 return false;
             }
